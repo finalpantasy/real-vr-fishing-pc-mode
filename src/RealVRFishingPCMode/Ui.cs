@@ -9,6 +9,8 @@ namespace RealVRFishingPCMode
     static class Ui
     {
         public static float Scale = 1f;
+        // every box and label is drawn this much see-through, for fading whole screens in and out
+        public static float Alpha = 1f;
         public static readonly Color Card = new Color(0.05f, 0.08f, 0.10f, 0.80f), Solid = new Color(0.07f, 0.10f, 0.12f, 0.97f),
             Edge = new Color(1f, 1f, 1f, 0.09f), Text = new Color(0.94f, 0.96f, 0.97f), Dim = new Color(0.62f, 0.69f, 0.73f),
             Accent = new Color(0.27f, 0.78f, 0.86f), Gold = new Color(1f, 0.77f, 0.30f), Cap = new Color(1f, 1f, 1f, 0.13f),
@@ -48,6 +50,7 @@ namespace RealVRFishingPCMode
         public static void Box(Rect r, Color c, float radius, float border = 0f)
         {
             if (!Repaint) return;
+            c.a *= Alpha;
             GUI.DrawTexture(r, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, c, border, radius);
         }
 
@@ -76,6 +79,7 @@ namespace RealVRFishingPCMode
         {
             if (!Repaint) return;
             var old = GUI.contentColor;
+            c.a *= Alpha;
             GUI.contentColor = c;
             st.Draw(r, Content(text), false, false, false, false);
             GUI.contentColor = old;
@@ -237,10 +241,17 @@ namespace RealVRFishingPCMode
         {
             Box(r, new Color(1f, 1f, 1f, 0.06f), S(8f));
             Box(r, Edge, S(8f), Mathf.Max(1f, Scale));
-            float w = r.width / options.Length;
+            // each segment gets its text's width plus an equal share of the rest, so a long word like Monitor fits
+            var st = Style(14, true, TextAnchor.MiddleCenter);
+            var tw = new float[options.Length];
+            float sum = 0f;
+            for (int i = 0; i < options.Length; i++) { tw[i] = Width(options[i], st) + S(12f); sum += tw[i]; }
+            float extra = (r.width - sum) / options.Length, x = r.x;
             for (int i = 0; i < options.Length; i++)
             {
-                var seg = new Rect(r.x + w * i + S(3f), r.y + S(3f), w - S(6f), r.height - S(6f));
+                float w = extra >= 0f ? tw[i] + extra : r.width * tw[i] / sum;
+                var seg = new Rect(x + S(3f), r.y + S(3f), w - S(6f), r.height - S(6f));
+                x += w;
                 bool on = i == index;
                 if (on) Box(seg, Accent, S(6f));
                 else if (Hover(seg)) Box(seg, new Color(1f, 1f, 1f, 0.08f), S(6f));

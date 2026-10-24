@@ -35,6 +35,7 @@ namespace RealVRFishingPCMode
     public class FakeHaptics : HapticDevice
     {
         public FakeHaptics(HAND_SIDE side) : base(side) { }
+        // every VR controller buzz in the game comes through here; Pad picks its own moments to rumble instead
         public override void SendHapticImpulse(float frequency, float amplitude, float duration) { }
     }
 

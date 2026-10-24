@@ -13,6 +13,7 @@ namespace RealVRFishingPCMode
         static Keys.Bind capturing, capturingPad;
         static bool waitRelease, prevF10, prevEsc, prevPadB, dirty;
         static Vector2 scroll;
+        static string clashNote;
         static float contentHeight;
 
         // the power bar fill time that "Power bar speed 100%" means
@@ -33,6 +34,9 @@ namespace RealVRFishingPCMode
             capturing = capturingPad = null;
             if (!open) Save();
         }
+
+        // something outside the panel changed a setting; it is saved with the rest
+        public static void Changed() => dirty = true;
 
         public static void Save()
         {
@@ -94,7 +98,18 @@ namespace RealVRFishingPCMode
 
             // header
             Ui.Label(new Rect(x, r.y + S(22f), iw, S(32f)), "Settings", Ui.Style(26, true), Ui.Text);
-            Ui.Label(new Rect(x, r.y + S(54f), iw, S(20f)), "Real VR Fishing PC Mode " + Plugin.Version, Ui.Style(13), Ui.Dim);
+            string ver = "Real VR Fishing PC Mode " + Plugin.Version;
+            Ui.Label(new Rect(x, r.y + S(54f), iw, S(20f)), ver, Ui.Style(13), Ui.Dim);
+            if (Updates.Newer != null)
+            {
+                // a newer release is out: a link to its page
+                var vs = Ui.Style(13, true);
+                float lx = x + Ui.Width(ver, Ui.Style(13)) + S(14f);
+                string link = "Version " + Updates.Newer + " is out. Get it on GitHub";
+                var lr = new Rect(lx, r.y + S(54f), Ui.Width(link, vs) + S(4f), S(20f));
+                Ui.Label(lr, link, vs, Ui.Hover(lr) ? Ui.Text : Ui.Gold);
+                if (Ui.Click(lr)) Application.OpenURL(Updates.Page);
+            }
             var close = new Rect(r.xMax - S(20f) - S(36f), r.y + S(20f), S(36f), S(36f));
             Ui.Box(close, new Color(1f, 1f, 1f, Ui.Hover(close) ? 0.14f : 0.06f), S(18f));
             Ui.Label(close, "×", Ui.Style(24, false, TextAnchor.MiddleCenter), Ui.Text);
@@ -102,7 +117,7 @@ namespace RealVRFishingPCMode
 
             // tabs, underlined in the accent color
             float ty = r.y + S(88f), tx = x;
-            string[] tabs = { "Settings", "Keys", "Controller" };
+            string[] tabs = { "View", "Fishing", "System", "Keys", "Controller", "Buttons" };
             for (int i = 0; i < tabs.Length; i++)
             {
                 var st = Ui.Style(16, true, TextAnchor.MiddleCenter);
@@ -119,8 +134,9 @@ namespace RealVRFishingPCMode
             float footH = S(72f), top = ty + S(46f);
             var view = new Rect(x - S(4f), top, iw + S(8f), r.yMax - footH - top);
             scroll = GUI.BeginScrollView(view, scroll, new Rect(0f, 0f, view.width - S(8f), Mathf.Max(contentHeight, view.height)), false, false, GUIStyle.none, GUIStyle.none);
-            contentHeight = tab == 0 ? DrawSettings(S(4f), view.width - S(16f)) : tab == 1 ? DrawKeys(S(4f), view.width - S(16f))
-                : DrawPad(S(4f), view.width - S(16f));
+            float bx0 = S(4f), bw0 = view.width - S(16f);
+            contentHeight = tab == 0 ? DrawView(bx0, bw0) : tab == 1 ? DrawFishing(bx0, bw0) : tab == 2 ? DrawSystem(bx0, bw0)
+                : tab == 3 ? DrawKeys(bx0, bw0) : tab == 4 ? DrawPad(bx0, bw0) : DrawButtons(bx0, bw0);
             GUI.EndScrollView();
             if (contentHeight > view.height)
             {
@@ -137,48 +153,122 @@ namespace RealVRFishingPCMode
                 : "Changes apply right away.  F10 or Esc closes.", Ui.Style(13), Ui.Dim);
             var done = new Rect(r.xMax - pad - S(110f), fy + S(18f), S(110f), S(40f));
             var reset = new Rect(done.x - S(12f) - S(150f), done.y, S(150f), S(40f));
-            if (Ui.Button(reset, tab == 0 ? "Reset settings" : tab == 1 ? "Reset keys" : "Reset controller"))
+            if (Ui.Button(reset, tab == 3 ? "Reset keys" : tab == 5 ? "Reset buttons" : "Reset this tab"))
             {
-                if (tab == 0) ResetSettings();
-                else if (tab == 1) Keys.ResetAll();
-                else
-                {
-                    Keys.ResetPad();
-                    foreach (var e in new ConfigEntryBase[] { Pad.Glyphs, Pad.LookSpeed, Pad.InvertLook }) e.BoxedValue = e.DefaultValue;
-                }
+                if (tab <= 2) ResetSettings(tab);
+                else if (tab == 3) Keys.ResetAll();
+                else if (tab == 4) foreach (var e in new ConfigEntryBase[] { Pad.Glyphs, Pad.LookSpeed, Pad.InvertLook, Pad.RumbleStrength, Pad.ReelTrigger, Pad.HookTrigger }) e.BoxedValue = e.DefaultValue;
+                else Keys.ResetPad();
                 capturing = capturingPad = null;
                 dirty = true;
             }
             if (Ui.Button(done, "Done", primary: true)) SetOpen(false);
         }
 
-        // the settings tab; returns its height
-        static float DrawSettings(float x, float w)
+        // each tab draws its rows and returns its height
+        static float DrawView(float x, float w)
         {
             float y = 0f;
             Section(ref y, x, "VIEW");
-            Slider(ref y, x, w, Plugin.MouseSensitivity, "Mouse sensitivity", 0.02f, 0.5f, 0.005f, v => v.ToString("0.000"));
-            Slider(ref y, x, w, Plugin.FieldOfView, "Field of view", 50f, 110f, 1f, v => v.ToString("0") + "°");
-            Slider(ref y, x, w, Plugin.ZoomFieldOfView, "Zoom field of view", 10f, 60f, 1f, v => v.ToString("0") + "°");
-            Slider(ref y, x, w, Plugin.HeadHeight, "Eye height", 1.2f, 2.2f, 0.01f, FeetInches);
+            Slider(ref y, x, w, Plugin.MouseSensitivity, "Mouse sensitivity", 0.02f, 0.5f, 0.005f, v => v.ToString("0.000"),
+                "How far your view turns when you move the mouse.");
+            Slider(ref y, x, w, Plugin.FieldOfView, "Field of view", 50f, 110f, 1f, v => v.ToString("0") + "°",
+                "How much of the world fits on screen. Higher shows more around you.");
+            Slider(ref y, x, w, Plugin.Zoom1FieldOfView, "Zoom, first press", 10f, 90f, 1f, v => v.ToString("0") + "°",
+                "Press " + Ui.Key(Keys.Zoom) + " once to zoom in this far. Lower zooms in closer.");
+            Slider(ref y, x, w, Plugin.ZoomFieldOfView, "Zoom, second press", 10f, 90f, 1f, v => v.ToString("0") + "°",
+                "Press it again to zoom in this far; a third press goes back to normal.");
+            Slider(ref y, x, w, Plugin.HeadHeight, "Eye height", 1.2f, 2.2f, 0.01f, FeetInches,
+                "How tall you stand. " + Ui.Key(Keys.Taller) + " and " + Ui.Key(Keys.Shorter) + " change it while you play.");
             if (Driver.I != null)
             {
-                bool help = OnOff(ref y, x, w, "Controls card", Driver.I.ShowHelp, Ui.Key(Keys.Help) + " also shows or hides it");
-                if (help != Driver.I.ShowHelp) Driver.I.ShowHelp = help;
+                int help = Choice(ref y, x, w, "Controls list", Driver.I.HelpMode, null,
+                    "The list of controls at the top left. Small is the same list at a smaller size. " + Ui.Key(Keys.Help) + " switches it in game.", "Full", "Small", "Off");
+                if (help != Driver.I.HelpMode) Driver.I.HelpMode = help;
             }
+            string[] dots = { "Auto", "On", "Off" };
+            int dot = Choice(ref y, x, w, "Aim dot", Mathf.Max(0, System.Array.IndexOf(dots, Plugin.AimDot.Value)), null,
+                "The dot in the middle of the screen. Auto shows it to aim a cast or point at a menu, and hides it while the line is out.", dots);
+            if (dots[dot] != Plugin.AimDot.Value) { Plugin.AimDot.Value = dots[dot]; dirty = true; }
 
-            Section(ref y, x, "FISHING");
-            int mode = Choice(ref y, x, w, "Cast with", Plugin.PowerCast ? 0 : 1, null, "Power bar", "Click a spot");
+            Section(ref y, x, "STATS CORNER");
+            string[] corner = { "Always", "On change", "Off" };
+            int sc = Choice(ref y, x, w, "Stats corner", Mathf.Max(0, System.Array.IndexOf(corner, Plugin.StatsCorner.Value)), null,
+                "Your stats at the top right while you fish, as many as you switch on below. On change shows them for a few seconds when one changes. Hidden on the catch screen and in photo mode.", corner);
+            if (corner[sc] != Plugin.StatsCorner.Value) { Plugin.StatsCorner.Value = corner[sc]; dirty = true; }
+            if (sc != 2)
+            {
+                Toggle(ref y, x, w, Plugin.HudLevel, "Level", null, "Your level and its experience as you have it out of what it takes, like 1,240 / 2,000 XP. At the top level it turns gold and counts the experience since.");
+                Toggle(ref y, x, w, Plugin.HudSeason, "Season score", null, "Your season score for this water: freshwater on lakes and rivers, saltwater at the beach and sea.");
+                if (Plugin.HudSeason.Value)
+                    Toggle(ref y, x, w, Plugin.HudBothSeasons, "Both seasons", null, "Freshwater and saltwater scores together, wherever you fish.");
+                Toggle(ref y, x, w, Plugin.HudCredits, "Credits", null, "The credits you have to spend.");
+                Toggle(ref y, x, w, Plugin.HudSpecies, "Species caught", null, "How many kinds of fish you have caught, out of all of them.");
+                Toggle(ref y, x, w, Plugin.HudLifetime, "Fish caught in all", null, "Every fish you have ever landed.");
+                Toggle(ref y, x, w, Plugin.HudSession, "This session", null, "Fish caught and time on the water since you started the game.");
+                if (Plugin.HudSession.Value)
+                {
+                    Toggle(ref y, x, w, Plugin.HudBiggest, "Biggest this session", null, "The heaviest fish so far, with its kind and weight.");
+                    Toggle(ref y, x, w, Plugin.HudEarned, "Earned this session", null, "Credits, experience and season points earned since you started the game. Spending credits doesn't count against it.");
+                }
+            }
+            string[] tut = { "Left", "Right", "Center" };
+            int tp = Choice(ref y, x, w, "Tutorial text", Mathf.Max(0, System.Array.IndexOf(tut, Plugin.TutorialPanel.Value)), null,
+                "Where the game's tutorial instructions sit: pinned to the left or right side of the screen as you look around, or in front of you.", tut);
+            if (tut[tp] != Plugin.TutorialPanel.Value) { Plugin.TutorialPanel.Value = tut[tp]; dirty = true; }
+
+            Section(ref y, x, "MOVEMENT");
+            Slider(ref y, x, w, Plugin.WalkSpeed, "Walk speed", 0.5f, 5f, 0.1f, v => (v * 2.237f).ToString("0.0") + " mph",
+                "How fast you walk in the lodge.");
+            return y + S(8f);
+        }
+
+        static float DrawFishing(float x, float w)
+        {
+            float y = 0f;
+            Section(ref y, x, "CASTING");
+            int mode = Choice(ref y, x, w, "Cast with", Plugin.PowerCast ? 0 : 1, null,
+                "Power bar: hold to wind up, let go to cast toward the crosshair. Click a spot: click the water where the lure should land.", "Power bar", "Click a spot");
             string m = mode == 0 ? "PowerBar" : "ClickSpot";
             if (m != Plugin.CastMode.Value) { Plugin.CastMode.Value = m; dirty = true; }
             PowerSpeed(ref y, x, w);
-            Slider(ref y, x, w, Plugin.RodLift, "Rod angle", 30f, 90f, 1f, v => v.ToString("0") + "° up");
-            Slider(ref y, x, w, Plugin.RodFollowLook, "Rod follows your view", 0f, 1f, 0.05f, v => (v * 100f).ToString("0") + "%");
-            Toggle(ref y, x, w, Plugin.AllowOnlineCasting, "Mouse casting online", "off keeps online rooms fair");
+            Toggle(ref y, x, w, Plugin.AllowOnlineCasting, "Mouse casting online", null,
+                "Lets this mod's casting work in online rooms. Off keeps it fair for players in VR.");
 
-            Section(ref y, x, "MOVEMENT AND GRAPHICS");
-            Slider(ref y, x, w, Plugin.WalkSpeed, "Walk speed", 0.5f, 5f, 0.1f, v => (v * 2.237f).ToString("0.0") + " mph");
-            Toggle(ref y, x, w, Plugin.SharpenScenery, "Sharper far scenery", "on the next start, up to 1 GB video memory");
+            Section(ref y, x, "ROD");
+            Slider(ref y, x, w, Plugin.RodLift, "Rod angle", 30f, 90f, 1f, v => v.ToString("0") + "° up",
+                "How high the rod tip points while you look straight ahead.");
+            Slider(ref y, x, w, Plugin.RodFollowLook, "Rod tilts with your view", 0f, 1f, 0.05f, v => (v * 100f).ToString("0") + "%",
+                "When you look up or down, the rod tilts along by this much. 0% keeps the rod still.");
+
+            Section(ref y, x, "CATCHES");
+            Toggle(ref y, x, w, Plugin.CustomCatchCard, "Full-screen catch screen", null,
+                "Your live fish, its size against the smallest and biggest of its kind, and what each choice earns. " + Ui.Key(Keys.Keep) + " keeps, " + Ui.Key(Keys.Release) + " releases, " + Ui.Key(Keys.CardToggle) + " shows the game's board.");
+            Toggle(ref y, x, w, Plugin.CatchScreenMotion, "Catch screen animations", null,
+                "Slides the catch screen in, sends the fish off when you choose, and floats up what you earned. Off opens and closes it at once.");
+
+            var note = Ui.Style(14, false, TextAnchor.UpperLeft, true);
+            const string hands = "Reeling is always one-handed: hold the reel button to reel. The game's two-handed reeling needs a VR hand turning the crank, so the mod switches it off.";
+            y += S(18f);
+            float nh = note.CalcHeight(Ui.Content(hands), w);
+            Ui.Label(new Rect(x, y, w, nh), hands, note, Ui.Dim);
+            return y + nh + S(8f);
+        }
+
+        static float DrawSystem(float x, float w)
+        {
+            float y = 0f;
+            Section(ref y, x, "GRAPHICS");
+            Toggle(ref y, x, w, Plugin.SharpenScenery, "Sharper distant scenery", null,
+                "Stops far shores and skylines from looking blurry or shimmering. Uses up to 1 GB more video memory. Applies after a restart.");
+            string[] caps = { "Monitor", "60", "90", "120", "144", "Off" };
+            int cap = Choice(ref y, x, w, "Frame rate limit", Mathf.Max(0, System.Array.IndexOf(caps, Plugin.FrameCap.Value)), null,
+                "Monitor matches your screen's refresh rate. Off lets it run as fast as it can, which can make the fishing line twitch and jump.", caps);
+            if (caps[cap] != Plugin.FrameCap.Value) { Plugin.FrameCap.Value = caps[cap]; dirty = true; }
+
+            Section(ref y, x, "UPDATES");
+            Toggle(ref y, x, w, Plugin.CheckForUpdates, "Check for updates", null,
+                "Each time the game starts, asks GitHub once whether a newer version of this mod is out.");
             return y + S(8f);
         }
 
@@ -192,24 +282,31 @@ namespace RealVRFishingPCMode
             float nh = note.CalcHeight(Ui.Content(text), w);
             Ui.Label(new Rect(x, y, w, nh), text, note, Ui.Dim);
             y += nh + S(14f);
-            float rowH = S(40f), bw = S(170f), bx = x + S(300f);
-            foreach (var b in Keys.All)
+            float rowH = S(36f), colW = (w - S(24f)) / 2f, bw = S(118f), top = y;
+            int rows = (Keys.All.Count + 1) / 2;
+            for (int i = 0; i < Keys.All.Count; i++)
             {
-                var row = new Rect(x - S(8f), y, w + S(16f), rowH);
+                var b = Keys.All[i];
+                float cx = x + (i < rows ? 0f : colW + S(24f));
+                y = top + (i % rows) * rowH;
+                var row = new Rect(cx - S(6f), y, colW + S(12f), rowH);
                 if (Ui.Hover(row)) Ui.Box(row, new Color(1f, 1f, 1f, 0.04f), S(8f));
-                Ui.Label(new Rect(x, y, S(290f), rowH), b.Label, Ui.Style(15), Ui.Text);
-                var br = new Rect(bx, y + S(5f), bw, rowH - S(10f));
+                Ui.Label(new Rect(cx, y, colW - bw - S(10f), rowH), b.Label, Fit(b.Label, colW - bw - S(10f)), Ui.Text);
+                var br = new Rect(cx + colW - bw, y + S(4f), bw, rowH - S(8f));
                 bool cap = capturing == b;
                 Ui.Box(br, cap ? new Color(1f, 0.77f, 0.3f, 0.16f) : new Color(1f, 1f, 1f, Ui.Hover(br) ? 0.18f : 0.11f), S(6f));
                 Ui.Box(br, cap ? Ui.Gold : Ui.Edge, S(6f), Mathf.Max(1f, cap ? S(1.5f) : Ui.Scale));
                 Ui.Label(br, cap ? "Press a key…" : b.Name, Ui.Style(14, true, TextAnchor.MiddleCenter), cap ? Ui.Gold : Ui.Text);
                 if (Ui.Click(br)) { capturing = cap ? null : b; waitRelease = true; }
+                // a key used twice gets a gold edge; hovering it says what else uses it
                 string clash = Keys.Clash(b);
                 if (clash != null)
-                    Ui.Label(new Rect(br.xMax + S(14f), y, w - (br.xMax - x) - S(14f), rowH), "also " + clash, Ui.Style(13), Ui.Gold);
-                y += rowH;
+                {
+                    Ui.Box(br, Ui.Gold, S(6f), Mathf.Max(1f, S(1.5f)));
+                    if (Ui.Hover(br)) clashNote = b.Name + " also " + clash;
+                }
             }
-            return y + S(8f);
+            return ClashLine(top + rows * rowH, x, w);
         }
 
         // the controller tab; returns its height
@@ -222,26 +319,54 @@ namespace RealVRFishingPCMode
             y += S(16f);
 
             Section(ref y, x, "CONTROLLER");
-            int g = Choice(ref y, x, w, "Button labels", Pad.PlayStation ? 1 : 0, null, "Xbox", "PlayStation");
+            int g = Choice(ref y, x, w, "Button labels", Pad.PlayStation ? 1 : 0, null,
+                "Which controller's button names and symbols the mod shows.", "Xbox", "PlayStation");
             string gv = g == 1 ? "PlayStation" : "Xbox";
             if (gv != Pad.Glyphs.Value) { Pad.Glyphs.Value = gv; Keys.Version++; dirty = true; }
-            Slider(ref y, x, w, Pad.LookSpeed, "Look speed", 60f, 400f, 5f, v => v.ToString("0") + "°/s");
-            Toggle(ref y, x, w, Pad.InvertLook, "Invert look", "push up to look down");
+            Slider(ref y, x, w, Pad.LookSpeed, "Look speed", 60f, 400f, 5f, v => v.ToString("0") + "°/s",
+                "How fast the right stick turns your view.");
+            Toggle(ref y, x, w, Pad.InvertLook, "Invert look", null,
+                "On: push the right stick up to look down, like a flight game.");
+            Slider(ref y, x, w, Pad.RumbleStrength, "Rumble", 0f, 1f, 0.05f, v => v <= 0f ? "Off" : (v * 100f).ToString("0") + "%",
+                "How hard the controller shakes. A light tick when a fish nibbles, a hard thump when it takes the bait (set the hook), and a steady rumble while the line is red (ease off).");
+            int rt = Choice(ref y, x, w, "Reel trigger", Pad.ReelTrigger.Value == "Full" ? 1 : 0, null,
+                "Squeeze: reels faster the further you pull, with full speed only near a full pull. Full: any pull reels at full speed.", "Squeeze", "Full");
+            string rv = rt == 1 ? "Full" : "Squeeze";
+            if (rv != Pad.ReelTrigger.Value) { Pad.ReelTrigger.Value = rv; dirty = true; }
+            int ht = Choice(ref y, x, w, "Hook trigger", Pad.HookTrigger.Value == "Full" ? 1 : 0, null,
+                "Squeeze: jerks the rod as sharply as you squeeze and raises it as far as you hold. Full: any pull is a full jerk and a full raise.", "Squeeze", "Full");
+            string hv = ht == 1 ? "Full" : "Squeeze";
+            if (hv != Pad.HookTrigger.Value) { Pad.HookTrigger.Value = hv; dirty = true; }
 
-            Section(ref y, x, "BUTTONS");
             var note = Ui.Style(14, false, TextAnchor.UpperLeft, true);
-            const string text = "Click a button, then press the new controller button or push the left stick. Esc cancels, Delete clears it. "
-                + "The right stick always looks around, the left stick walks, and the reel trigger reels as far as you pull it.";
+            const string sticks = "The right stick looks around and the left stick walks. On Squeeze, bringing a lure in follows the reel trigger smoothly, "
+                + "with full speed near a full pull. With a fish on, reeling is on or off, as in the game.";
+            y += S(18f);
+            float sh = note.CalcHeight(Ui.Content(sticks), w);
+            Ui.Label(new Rect(x, y, w, sh), sticks, note, Ui.Dim);
+            return y + sh + S(8f);
+        }
+
+        // the controller buttons tab; returns its height
+        static float DrawButtons(float x, float w)
+        {
+            float y = S(10f);
+            var note = Ui.Style(14, false, TextAnchor.UpperLeft, true);
+            const string text = "Click a button, then press the new controller button or push the left stick. Esc cancels, Delete clears it.";
             float nh = note.CalcHeight(Ui.Content(text), w);
             Ui.Label(new Rect(x, y, w, nh), text, note, Ui.Dim);
             y += nh + S(14f);
-            float rowH = S(40f), bw = S(170f), bx = x + S(300f);
-            foreach (var b in Keys.All)
+            float rowH = S(36f), colW = (w - S(24f)) / 2f, bw = S(118f), top = y;
+            int rows = (Keys.All.Count + 1) / 2;
+            for (int i = 0; i < Keys.All.Count; i++)
             {
-                var row = new Rect(x - S(8f), y, w + S(16f), rowH);
+                var b = Keys.All[i];
+                float cx = x + (i < rows ? 0f : colW + S(24f));
+                y = top + (i % rows) * rowH;
+                var row = new Rect(cx - S(6f), y, colW + S(12f), rowH);
                 if (Ui.Hover(row)) Ui.Box(row, new Color(1f, 1f, 1f, 0.04f), S(8f));
-                Ui.Label(new Rect(x, y, S(290f), rowH), b.Label, Ui.Style(15), Ui.Text);
-                var br = new Rect(bx, y + S(5f), bw, rowH - S(10f));
+                Ui.Label(new Rect(cx, y, colW - bw - S(10f), rowH), b.Label, Fit(b.Label, colW - bw - S(10f)), Ui.Text);
+                var br = new Rect(cx + colW - bw, y + S(4f), bw, rowH - S(8f));
                 bool cap = capturingPad == b;
                 Ui.Box(br, cap ? new Color(1f, 0.77f, 0.3f, 0.16f) : new Color(1f, 1f, 1f, Ui.Hover(br) ? 0.18f : 0.11f), S(6f));
                 Ui.Box(br, cap ? Ui.Gold : Ui.Edge, S(6f), Mathf.Max(1f, cap ? S(1.5f) : Ui.Scale));
@@ -256,10 +381,12 @@ namespace RealVRFishingPCMode
                 if (Ui.Click(br)) { capturingPad = cap ? null : b; capturing = null; waitRelease = true; }
                 string clash = Keys.Clash(b, pad: true);
                 if (clash != null)
-                    Ui.Label(new Rect(br.xMax + S(14f), y, w - (br.xMax - x) - S(14f), rowH), "also " + clash, Ui.Style(13), Ui.Gold);
-                y += rowH;
+                {
+                    Ui.Box(br, Ui.Gold, S(6f), Mathf.Max(1f, S(1.5f)));
+                    if (Ui.Hover(br)) clashNote = Pad.Display(b.PadButton) + " also " + clash;
+                }
             }
-            return y + S(8f);
+            return ClashLine(top + rows * rowH, x, w);
         }
 
         static void Section(ref float y, float x, string name)
@@ -269,20 +396,28 @@ namespace RealVRFishingPCMode
             y += S(26f);
         }
 
-        // label on the left, control in the middle, value or note on the right
-        static Rect Row(ref float y, float x, float w, string name, out Rect value)
+        // label on the left, control in the middle, value or note on the right, and a line under them saying what it does
+        static Rect Row(ref float y, float x, float w, string name, out Rect value, string help)
         {
             const float rowH = 44f;
             Ui.Label(new Rect(x, y, S(250f), S(rowH)), name, Ui.Style(15), Ui.Text);
             var control = new Rect(x + S(250f), y + S(7f), S(300f), S(rowH - 14f));
             value = new Rect(control.xMax + S(20f), y, w - (control.xMax + S(20f) - x), S(rowH));
             y += S(rowH);
+            if (help != null)
+            {
+                // a help line that wraps pushes the next row down instead of running into it
+                var hs = Ui.Style(13, false, TextAnchor.UpperLeft, true);
+                float hh = hs.CalcHeight(Ui.Content(help), w);
+                Ui.Label(new Rect(x, y - S(6f), w, hh), help, hs, Ui.Dim);
+                y += Mathf.Max(S(20f), hh + S(2f));
+            }
             return control;
         }
 
-        static void Slider(ref float y, float x, float w, ConfigEntry<float> e, string name, float min, float max, float step, Func<float, string> format)
+        static void Slider(ref float y, float x, float w, ConfigEntry<float> e, string name, float min, float max, float step, Func<float, string> format, string help = null)
         {
-            var c = Row(ref y, x, w, name, out var value);
+            var c = Row(ref y, x, w, name, out var value, help);
             // only a drag changes the value, so a value set outside the slider's range in the file stays as it is
             GUI.changed = false;
             float v = Ui.Slider(c, e.Value, min, max);
@@ -297,7 +432,7 @@ namespace RealVRFishingPCMode
         // the bar's fill time shown as a speed, 100% being the default
         static void PowerSpeed(ref float y, float x, float w)
         {
-            var c = Row(ref y, x, w, "Power bar speed", out var value);
+            var c = Row(ref y, x, w, "Power bar speed", out var value, "How fast the power bar fills while you hold to cast.");
             var e = Plugin.PowerFillSeconds;
             GUI.changed = false;
             float speed = Ui.Slider(c, BaseFillSeconds / Mathf.Max(0.05f, e.Value), 0.5f, 2f);
@@ -311,18 +446,18 @@ namespace RealVRFishingPCMode
             Ui.Label(value, (shown * 100f).ToString("0") + "%  <color=#9EB0BA>" + e.Value.ToString("0.00") + " s</color>", Ui.Style(15, true), Ui.Text);
         }
 
-        static void Toggle(ref float y, float x, float w, ConfigEntry<bool> e, string name, string note)
+        static void Toggle(ref float y, float x, float w, ConfigEntry<bool> e, string name, string note, string help = null)
         {
-            bool v = OnOff(ref y, x, w, name, e.Value, note);
+            bool v = OnOff(ref y, x, w, name, e.Value, note, help);
             if (v != e.Value) { e.Value = v; dirty = true; }
         }
 
-        static bool OnOff(ref float y, float x, float w, string name, bool on, string note) =>
-            Choice(ref y, x, w, name, on ? 1 : 0, note, "Off", "On") == 1;
+        static bool OnOff(ref float y, float x, float w, string name, bool on, string note, string help = null) =>
+            Choice(ref y, x, w, name, on ? 1 : 0, note, help, "Off", "On") == 1;
 
-        static int Choice(ref float y, float x, float w, string name, int index, string note, params string[] options)
+        static int Choice(ref float y, float x, float w, string name, int index, string note, string help, params string[] options)
         {
-            var c = Row(ref y, x, w, name, out var value);
+            var c = Row(ref y, x, w, name, out var value, help);
             if (options[0].Length <= 3) c.width = S(150f);
             index = Ui.Segmented(c, index, options);
             if (note != null)
@@ -340,13 +475,31 @@ namespace RealVRFishingPCMode
             return $"{meters:0.00} m  <color=#9EB0BA>{inches / 12} ft {inches % 12} in</color>";
         }
 
-        static void ResetSettings()
+        // tab 0 view, 1 fishing, 2 system
+        static void ResetSettings(int which)
         {
-            foreach (var e in new ConfigEntryBase[] { Plugin.MouseSensitivity, Plugin.FieldOfView, Plugin.ZoomFieldOfView, Plugin.HeadHeight,
-                Plugin.CastMode, Plugin.PowerFillSeconds, Plugin.RodLift, Plugin.RodFollowLook, Plugin.AllowOnlineCasting, Plugin.WalkSpeed,
-                Plugin.SharpenScenery })
-                e.BoxedValue = e.DefaultValue;
-            if (Driver.I != null) Driver.I.ShowHelp = true;
+            var entries = which == 0 ? new ConfigEntryBase[] { Plugin.MouseSensitivity, Plugin.FieldOfView, Plugin.Zoom1FieldOfView, Plugin.ZoomFieldOfView, Plugin.HeadHeight, Plugin.AimDot, Plugin.StatsCorner, Plugin.HudLevel, Plugin.HudSeason, Plugin.HudBothSeasons, Plugin.HudCredits, Plugin.HudSpecies, Plugin.HudLifetime,
+                Plugin.HudSession, Plugin.HudBiggest, Plugin.HudEarned, Plugin.TutorialPanel, Plugin.WalkSpeed }
+                : which == 1 ? new ConfigEntryBase[] { Plugin.CastMode, Plugin.PowerFillSeconds, Plugin.CustomCatchCard, Plugin.RodLift, Plugin.RodFollowLook, Plugin.AllowOnlineCasting, Plugin.CatchScreenMotion }
+                : new ConfigEntryBase[] { Plugin.SharpenScenery, Plugin.FrameCap, Plugin.CheckForUpdates };
+            foreach (var e in entries) e.BoxedValue = e.DefaultValue;
+            if (which == 0 && Driver.I != null) Driver.I.ShowHelp = true;
+        }
+
+        // under a two-column list: what else uses the hovered key or button
+        static float ClashLine(float y, float x, float w)
+        {
+            if (clashNote != null) Ui.Label(new Rect(x, y + S(6f), w, S(20f)), clashNote, Ui.Style(13), Ui.Gold);
+            clashNote = null;
+            return y + S(30f);
+        }
+
+        // a label in the biggest size up to 15 that fits the width
+        static GUIStyle Fit(string text, float width)
+        {
+            for (int size = 15; size > 11; size--)
+                if (Ui.Width(text, Ui.Style(size)) <= width) return Ui.Style(size);
+            return Ui.Style(11);
         }
     }
 }

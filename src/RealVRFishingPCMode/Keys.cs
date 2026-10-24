@@ -24,7 +24,7 @@ namespace RealVRFishingPCMode
 
         public static Bind Reel, Hook, SlowReel, Zoom, FreeCursor, Left, Right, Forward, Back, Run, Grab, ButtonA, ButtonB,
             ButtonX, ButtonY, OffTrigger, OffGrip, Menu, StickUp, StickDown, StickLeft, StickRight, Taller, Shorter, ResetView,
-            Help, Photo;
+            Help, Photo, Keep, Release, CardToggle;
 
         public const int Escape = 0x1B, F9 = 0x78, F10 = 0x79;
 
@@ -38,7 +38,7 @@ namespace RealVRFishingPCMode
             Forward = Add(cfg, "Forward", "Walk forward", 'W', Pad.Button.LStickUp);
             Back = Add(cfg, "Back", "Walk back", 'S', Pad.Button.LStickDown);
             Run = Add(cfg, "Run", "Hold to run", 0x10, Pad.Button.LS);
-            Zoom = Add(cfg, "Zoom", "Hold to zoom", 'Z', Pad.Button.LB);
+            Zoom = Add(cfg, "Zoom", "Zoom in, in more, out", 'Z', Pad.Button.LB);
             FreeCursor = Add(cfg, "FreeCursor", "Hold to free the mouse cursor", 0xA4, Pad.Button.None);
             Menu = Add(cfg, "Menu", "Game menu", 0x09, Pad.Button.Menu);
             Grab = Add(cfg, "Grab", "Grab (rod hand grip)", 'F', Pad.Button.RB);
@@ -57,6 +57,9 @@ namespace RealVRFishingPCMode
             ResetView = Add(cfg, "ResetView", "Reset the view", 0x24, Pad.Button.RS);
             Help = Add(cfg, "Help", "Show or hide the controls list", 0x70, Pad.Button.View);
             Photo = Add(cfg, "PhotoMode", "Photo mode", 'P', Pad.Button.None);
+            Keep = Add(cfg, "Keep", "Keep the fish (catch card on screen)", 0x20, Pad.Button.None);
+            Release = Add(cfg, "Release", "Release the fish (catch card on screen)", 0x08, Pad.Button.None);
+            CardToggle = Add(cfg, "CatchCard", "Hide or show the catch card", 'H', Pad.Button.None);
         }
 
         static Bind Add(ConfigFile cfg, string key, string label, int vk, Pad.Button pad)

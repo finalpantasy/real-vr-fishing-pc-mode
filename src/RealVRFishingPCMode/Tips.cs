@@ -47,7 +47,7 @@ namespace RealVRFishingPCMode
                                  : new[] { "Aim at the water and press", reel, "to cast there." },
                 new[] { "Hold", reel, "to reel. When a fish bites, press", hook, "to set the hook." },
                 new[] { Ui.KeyMark + "F10", Pad.InUse ? "on the keyboard opens settings and buttons," : "opens settings and keys,",
-                    K(Keys.Help), "hides the controls card." },
+                    K(Keys.Help), "shrinks or hides the controls card." },
             };
             string[] titles = { "Cast", "Reel and hook", "Make it yours" };
 

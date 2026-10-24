@@ -63,8 +63,10 @@ namespace RealVRFishingPCMode
         public bool Charging, CastCancelled;
         public float CastPower, ChargeSeenAt, CastReleaseLift;
 
-        float yaw, pitch = 10f, heightOffset, zoom;
-        bool focused, wasLocked, showHelp = true, prevF1, prevF9, prevRmb, prevPgUp, prevPgDn, prevA, prevD;
+        float yaw, pitch = 10f, heightOffset, zoom = 1f, zoomFrom;
+        float hookStrength = 1f, hookHold, prevPull;
+        bool focused, wasLocked, prevF1, prevF9, prevRmb, prevPgUp, prevPgDn, prevA, prevD, prevZoom;
+        int zoomStep;
         Transform head, headParent, leftHand, rightHand;
         Camera cam;
         float nextScan;
@@ -78,6 +80,7 @@ namespace RealVRFishingPCMode
             Right = new FakeController(HAND_SIDE.RIGHT);
             Tracking = new FakeTracking();
             Application.onBeforeRender += ApplyPoses;
+            helpMode = Mathf.Max(0, Array.IndexOf(HelpModes, Plugin.HelpCard.Value));
         }
 
         void OnDestroy() => Application.onBeforeRender -= ApplyPoses;
@@ -85,7 +88,15 @@ namespace RealVRFishingPCMode
         public float Yaw { get => yaw; set => yaw = value; }
         public float Pitch { get => pitch; set => pitch = Mathf.Clamp(value, -85f, 85f); }
         public Transform Head => head;
-        public bool ShowHelp { get => showHelp; set => showHelp = value; }
+        // the controls card: full, small (the same card at 70%) or hidden; F1 (View on a controller) steps through them
+        public static readonly string[] HelpModes = { "Full", "Small", "Hidden" };
+        int helpMode;
+        public int HelpMode
+        {
+            get => helpMode;
+            set { helpMode = value; Plugin.HelpCard.Value = HelpModes[value]; SettingsPanel.Changed(); }
+        }
+        public bool ShowHelp { get => helpMode != 2; set => HelpMode = value ? 0 : 2; }
         public Transform LeftHand => leftHand;
         public Transform RightHand => rightHand;
         public FakeController Main => MainSide == HAND_SIDE.RIGHT ? Right : Left;
@@ -135,6 +146,7 @@ namespace RealVRFishingPCMode
                 catch (Exception e) { installFailed = true; Plugin.Log.LogError("install devices: " + e); }
             }
             LookUp();
+            CapFrameRate();
 
             // while the rig is missing (loading), look for it often but not every frame
             if (Time.unscaledTime >= nextScan || (head == null && Time.frameCount % 15 == 0)) FindRig();
@@ -148,6 +160,7 @@ namespace RealVRFishingPCMode
             bool modal = SettingsPanel.Open || Tips.Open;
             bool input = focused && !modal;
             bool freeCursor = input && Keys.FreeCursor.Down;
+            try { CatchCard.Tick(input); } catch (Exception e) { Plugin.Log.LogWarning("catch card tick: " + e.Message); }
             try { PhotoMode.Tick(this, input, Quaternion.Euler(0f, yaw, 0f)); }
             catch (Exception e) { Plugin.Log.LogError("photo mode: " + e.Message); }
             ReadMouse(hwnd, freeCursor || modal);
@@ -165,7 +178,11 @@ namespace RealVRFishingPCMode
             if (Win.Scripted) Win.VirtualWheel = 0f;
         }
 
-        void OnApplicationQuit() => SettingsPanel.Save();
+        void OnApplicationQuit()
+        {
+            SettingsPanel.Save();
+            Pad.StopRumble();
+        }
 
         void LateUpdate()
         {
@@ -179,7 +196,7 @@ namespace RealVRFishingPCMode
             {
                 Cursor.visible = false;
                 var m = Win.VirtualMouse;
-                if (!PhotoMode.TurnFish(true, m.x, m.y))
+                if (!PhotoMode.TurnFish(true, m.x, m.y) && !CatchCard.TurnFish(m.x, m.y))
                 {
                     yaw += m.x * Plugin.MouseSensitivity.Value;
                     pitch = Mathf.Clamp(pitch + m.y * Plugin.MouseSensitivity.Value, -85f, 85f);
@@ -196,7 +213,7 @@ namespace RealVRFishingPCMode
             Win.GetCursorPos(out var p);
             // slower turning while zoomed, so aiming stays steady
             float zoomScale = cam != null ? cam.fieldOfView / Plugin.FieldOfView.Value : 1f;
-            if (wasLocked && !PhotoMode.TurnFish(focused, p.X - c.X, p.Y - c.Y))
+            if (wasLocked && !PhotoMode.TurnFish(focused, p.X - c.X, p.Y - c.Y) && !CatchCard.TurnFish(p.X - c.X, p.Y - c.Y))
             {
                 float s = Plugin.MouseSensitivity.Value * zoomScale;
                 yaw += (p.X - c.X) * s;
@@ -205,7 +222,8 @@ namespace RealVRFishingPCMode
             }
             // the right stick turns the view, gently near the middle for fine aiming
             var rs = Pad.RightStick;
-            if (rs != Vector2.zero)
+            // on the catch screen it turns the fish instead
+            if (rs != Vector2.zero && !CatchCard.TurnFish(rs.x * Mathf.Abs(rs.x) * 500f * Time.unscaledDeltaTime, -rs.y * Mathf.Abs(rs.y) * 500f * Time.unscaledDeltaTime))
             {
                 float turn = Pad.LookSpeed.Value * zoomScale * Time.unscaledDeltaTime;
                 yaw += rs.x * Mathf.Abs(rs.x) * turn;
@@ -220,7 +238,7 @@ namespace RealVRFishingPCMode
             MainSide = MainIsRight() ? HAND_SIDE.RIGHT : HAND_SIDE.LEFT;
             var m = Main; var o = Off;
             bool f1 = on && Keys.Help.Down;
-            if (f1 && !prevF1) showHelp = !showHelp;
+            if (f1 && !prevF1) HelpMode = (helpMode + 1) % HelpModes.Length;
             prevF1 = f1;
             bool f9 = on && Win.Down(Keys.F9);
             if (f9 && !prevF9) Diag.Toggle();
@@ -228,21 +246,31 @@ namespace RealVRFishingPCMode
             if (on)
                 foreach (var b in Keys.All)
                     if (Win.Down(b.Vk)) { Pad.InUse = false; break; }
-            if (PhotoMode.On || SettingsPanel.Open || Tips.Open)
+            if (PhotoMode.On || SettingsPanel.Open || Tips.Open || CatchCard.Showing && !CatchCard.Hidden)
             {
-                // photo mode or the settings panel owns the keyboard; the game sees both controllers at rest
+                // photo mode, the settings panel or the catch screen owns the keyboard; the game sees both controllers at rest
                 foreach (var h in new[] { m, o })
                 {
                     h.Trigger = h.Grip = h.Primary = h.Secondary = h.Menu = h.StickClick = false;
                     h.Stick = Vector2.zero;
                 }
-                prevRmb = true; prevA = prevD = true;
-                zoom = 0f;
+                prevRmb = true; prevA = prevD = true; prevMenu = true;
+                zoom = 1f; zoomStep = 0;
                 return;
             }
             bool rmb = on && Keys.Hook.Down;
-            if (rmb && !prevRmb) HookPressedAt = Time.time;
+            // on a controller trigger, how fast it's squeezed sets how sharp the flick is (a slow squeeze makes no
+            // twitch), and how far it's held raises the rod while the line is out
+            var hb = Keys.Hook.PadButton;
+            float pull = on && !Win.Down(Keys.Hook.Vk) && (hb == Pad.Button.LT || hb == Pad.Button.RT) ? Pad.Amount(hb) : 0f;
+            bool hookFull = Pad.HookTrigger.Value == "Full";
+            float sharp = hookFull ? 1f : Mathf.Clamp((pull - prevPull) / Mathf.Max(Time.unscaledDeltaTime, 0.001f) / 10f, 0.35f, 1.2f);
+            prevPull = pull;
+            if (hookFull) pull = pull > 0.1f ? 1f : 0f;
+            if (rmb && !prevRmb) { HookPressedAt = Time.time; hookStrength = pull > 0f ? sharp : 1f; }
+            else if (pull > 0f && Time.time - HookPressedAt < 0.08f) hookStrength = Mathf.Max(hookStrength, sharp);
             prevRmb = rmb;
+            hookHold = LineOut() ? pull : 0f;
             bool pgUp = on && Keys.Taller.Down, pgDn = on && Keys.Shorter.Down;
             if (pgUp && !prevPgUp) heightOffset += 0.05f;
             if (pgDn && !prevPgDn) heightOffset -= 0.05f;
@@ -253,12 +281,17 @@ namespace RealVRFishingPCMode
             if (a && !prevA) SwingLeftAt = Time.time;
             if (dk && !prevD) SwingRightAt = Time.time;
             prevA = a; prevD = dk;
-            zoom = Mathf.MoveTowards(zoom, on && Keys.Zoom.Down ? 1f : 0f, Time.unscaledDeltaTime * 6f);
+            bool zk = on && Keys.Zoom.Down;
+            // each step blends from wherever the view is now, so zooming back out goes straight to normal
+            int step = !on ? 0 : zk && !prevZoom ? (zoomStep + 1) % 3 : zoomStep;
+            if (step != zoomStep) { zoomFrom = cam != null ? cam.fieldOfView : ZoomFov(zoomStep); zoomStep = step; zoom = 0f; }
+            prevZoom = zk;
+            zoom = Mathf.MoveTowards(zoom, 1f, Time.unscaledDeltaTime * 6f);
 
             m.Trigger = on && Keys.Reel.Down;
-            // a controller trigger reels as far as it is pulled (never past a full pull); the slow key wins
-            m.TriggerAmount = on && Keys.SlowReel.Down ? 0.4f
-                : on && !Win.Down(Keys.Reel.Vk) && Pad.Down(Keys.Reel.PadButton) ? Mathf.Clamp(Pad.Amount(Keys.Reel.PadButton) / 0.9f, 0.25f, 1f) : 1f;
+            // a controller trigger reels as far as it is pulled (see Pad.ReelValue); the slow key wins
+            bool padReel = on && !Win.Down(Keys.Reel.Vk) && Pad.Down(Keys.Reel.PadButton);
+            m.TriggerAmount = on && Keys.SlowReel.Down ? 0.4f : padReel ? Pad.ReelValue(Pad.Amount(Keys.Reel.PadButton)) : 1f;
             m.Grip = on && Keys.Grab.Down;
             m.Primary = on && Keys.ButtonA.Down;
             m.Secondary = on && Keys.ButtonB.Down;
@@ -277,9 +310,30 @@ namespace RealVRFishingPCMode
             o.Grip = on && Keys.OffGrip.Down;
             o.Primary = on && Keys.ButtonX.Down;
             o.Secondary = on && Keys.ButtonY.Down;
-            o.Menu = on && Keys.Menu.Down;
+            // the LIV camera tablet opens right in front of you and covers the wrist menu, which a VR hand would reach
+            // around; here the menu button puts the tablet away first, and the next press opens the menu
+            bool menu = on && Keys.Menu.Down;
+            if (menu && !prevMenu && CloseLivTablet()) menuSwallowed = true;
+            if (!menu) menuSwallowed = false;
+            prevMenu = menu;
+            o.Menu = menu && !menuSwallowed;
             o.StickClick = false;
             o.Stick = Vector2.zero;
+        }
+
+        bool prevMenu = true, menuSwallowed;
+
+        static bool CloseLivTablet()
+        {
+            try
+            {
+                var liv = UnityEngine.Object.FindFirstObjectByType<LIVManager>();
+                if (liv == null || !liv.IsTabletOn) return false;
+                liv.ToggleTablet();
+                Plugin.Log.LogInfo("menu button: put the LIV camera tablet away");
+                return true;
+            }
+            catch (Exception e) { Plugin.Log.LogWarning("LIV tablet: " + e.Message); return false; }
         }
 
         bool MainIsRight()
@@ -358,6 +412,18 @@ namespace RealVRFishingPCMode
             foreach (Transform c in t) DumpTree(c, depth + 1, max);
         }
 
+        // flat play runs uncapped (the game turns V-Sync off for VR), several frames per physics step, and the line twitches
+        static void CapFrameRate()
+        {
+            string c = Plugin.FrameCap.Value;
+            int vsync = c == "Monitor" ? 1 : 0;
+            int fps = int.TryParse(c, out var n) ? n : -1;
+            if (QualitySettings.vSyncCount != vsync) QualitySettings.vSyncCount = vsync;
+            if (Application.targetFrameRate != fps) Application.targetFrameRate = fps;
+        }
+
+        static float ZoomFov(int step) => step == 1 ? Plugin.Zoom1FieldOfView.Value : step == 2 ? Plugin.ZoomFieldOfView.Value : Plugin.FieldOfView.Value;
+
         void ComputePoses(bool freeCursor, IntPtr hwnd)
         {
             HasAim = false;
@@ -412,9 +478,10 @@ namespace RealVRFishingPCMode
             if (rightHand != null) { rightHand.localPosition = rightPose.position; rightHand.localRotation = rightPose.rotation; }
             PhotoMode.Apply(head);
             float fov = PhotoMode.On && PhotoMode.Fov > 0f ? PhotoMode.Fov
-                : Mathf.Lerp(Plugin.FieldOfView.Value, Plugin.ZoomFieldOfView.Value, zoom * zoom * (3f - 2f * zoom));
+                : Mathf.Lerp(zoomFrom, ZoomFov(zoomStep), Mathf.SmoothStep(0f, 1f, zoom));
             if (cam != null && Plugin.DisableVR.Value && Mathf.Abs(cam.fieldOfView - fov) > 0.01f)
                 cam.fieldOfView = fov;
+            Tutorial.Follow();
         }
 
         bool padRun, prevRunClick;
@@ -472,10 +539,26 @@ namespace RealVRFishingPCMode
             return t < Up ? Mathf.SmoothStep(0f, Angle, t / Up) : Mathf.SmoothStep(Angle, 0f, (t - Up) / Down);
         }
 
+        static bool LineOut()
+        {
+            var fc = Singleton<global::Main>.Instance != null ? Singleton<global::Main>.Instance.fishingController : null;
+            if (fc == null) return false;
+            var st = fc.gameState;
+            return st == FISHINGSTATE.CASTING || st == FISHINGSTATE.RETRIEVE || st == FISHINGSTATE.FIGHTING || st == FISHINGSTATE.LANDING;
+        }
+
+        // Auto: there to aim a cast or point at a menu, gone while the line is out and over the catch screen
+        static bool ShowAimDot()
+        {
+            if (Plugin.AimDot.Value == "Off" || CatchCard.Showing && !CatchCard.Hidden) return false;
+            if (Plugin.AimDot.Value == "On") return true;
+            return !LineOut();
+        }
+
         // extra rod pitch in degrees: the cast winds back over the shoulder then whips forward, the hook flicks up
         float RodAnimLift()
         {
-            float lift = Flick(Time.time - HookPressedAt);
+            float lift = Flick(Time.time - HookPressedAt) * hookStrength + hookHold * 35f;
             // the game stops asking about casting once the rod isn't ready, so drop a charge it forgot
             if (Charging && Time.time - ChargeSeenAt > 0.25f) Charging = false;
             if (Charging) return lift + CastPower * 45f;
@@ -541,12 +624,12 @@ namespace RealVRFishingPCMode
             Ui.Begin();
             if (SettingsPanel.Open) { SettingsPanel.Draw(); return; }
             if (Tips.Open) { Tips.Draw(); return; }
-            if (PhotoMode.On) { PhotoMode.Draw(showHelp); return; }
+            if (PhotoMode.On) { PhotoMode.Draw(ShowHelp); return; }
             var c = new Vector2(Screen.width / 2f, Screen.height / 2f);
-            if (focused && !Keys.FreeCursor.Down)
+            if (focused && !Keys.FreeCursor.Down && ShowAimDot())
             {
                 // a small dot with a dark rim, readable on bright water and dark rooms alike
-                float d = Ui.S(6f), rim = Ui.S(2f);
+                float d = Ui.S(4f), rim = Ui.S(1.5f);
                 Ui.Box(new Rect(c.x - d / 2f - rim, c.y - d / 2f - rim, d + 2f * rim, d + 2f * rim), new Color(0f, 0f, 0f, 0.45f), d / 2f + rim);
                 Ui.Box(new Rect(c.x - d / 2f, c.y - d / 2f, d, d), new Color(1f, 1f, 1f, 0.95f), d / 2f);
             }
@@ -566,6 +649,9 @@ namespace RealVRFishingPCMode
             }
 
             if (Charging) DrawPowerBar(c);
+            if (CatchCard.Drawing)
+                try { CatchCard.Draw(); } catch (Exception e) { Plugin.Log.LogWarning("catch card draw: " + e.Message); }
+            else Hud.Draw();
             if (Diag.On && Diag.Text != null)
             {
                 var st = Ui.Style(14, false, TextAnchor.UpperLeft, true);
@@ -575,13 +661,18 @@ namespace RealVRFishingPCMode
                 Ui.Label(new Rect(r.x + Ui.S(12f), r.y + Ui.S(10f), r.width - Ui.S(24f), r.height - Ui.S(20f)), Diag.Text, st, Ui.Text);
             }
 
-            if (!showHelp) return;
+            // the catch screen has its own key hints
+            if (helpMode == 2 || CatchCard.Showing && !CatchCard.Hidden) return;
             if (helpVersion != Keys.Version || helpPowerCast != Plugin.PowerCast || helpPad != Pad.InUse || helpPs != Pad.PlayStation)
             {
                 helpVersion = Keys.Version; helpPowerCast = Plugin.PowerCast; helpPad = Pad.InUse; helpPs = Pad.PlayStation;
                 BuildHelp();
             }
+            // small is the full card drawn at 70% size
+            float full = Ui.Scale;
+            if (helpMode == 1) Ui.Scale *= 0.7f;
             DrawHelp();
+            Ui.Scale = full;
         }
 
         // a bound action as the controls card shows it: the controller button once the controller was used last
@@ -599,7 +690,7 @@ namespace RealVRFishingPCMode
                 new Row("Hold too for slow reeling", Ui.Key(Keys.SlowReel)),
                 new Row("Set the hook, twitch, land", Ui.Key(Keys.Hook)),
                 new Row("Swing the rod when a fish jumps", Ui.Key(Keys.Left), Ui.Key(Keys.Right)),
-                new Row("Zoom", Ui.Key(Keys.Zoom)),
+                new Row("Zoom (press to step)", Ui.Key(Keys.Zoom)),
                 new Row("Lure depth, bait (or wheel)", Ui.Key(Keys.StickUp), Ui.Key(Keys.StickDown)),
                 new Row("Turn a landed fish", "Middle mouse"),
             };
@@ -629,7 +720,7 @@ namespace RealVRFishingPCMode
                 new Row("Hold too for slow reeling", P(Keys.SlowReel)),
                 new Row("Set the hook, twitch, land", P(Keys.Hook)),
                 stickSwing ? new Row("Flick when a fish jumps", "L-stick ← →") : new Row("Swing the rod when a fish jumps", P(Keys.Left), P(Keys.Right)),
-                new Row("Zoom", P(Keys.Zoom)),
+                new Row("Zoom (press to step)", P(Keys.Zoom)),
                 new Row("Lure depth, bait", P(Keys.StickUp), P(Keys.StickDown)),
                 new Row("Spin a landed fish", P(Keys.StickLeft), P(Keys.StickRight)));
             helpRight = Present(
@@ -660,7 +751,8 @@ namespace RealVRFishingPCMode
             foreach (var r in helpLeft) lw = Mathf.Max(lw, Ui.KeyLine(0f, 0f, r.Keys, r.Text, chip, 14, true));
             foreach (var r in helpRight) rw = Mathf.Max(rw, Ui.KeyLine(0f, 0f, r.Keys, r.Text, chip, 14, true));
             string[] f1 = { HelpKey(Keys.Help) }, f10 = { "F10" };
-            float hide = Ui.KeyLine(0f, 0f, f1, "hide", chip, 13, true), settings = Ui.KeyLine(0f, 0f, f10, "settings", chip, 13, true);
+            string next = helpMode == 1 ? "hide" : "smaller";
+            float hide = Ui.KeyLine(0f, 0f, f1, next, chip, 13, true), settings = Ui.KeyLine(0f, 0f, f10, "settings", chip, 13, true);
             var titleStyle = Ui.Style(18, true);
             const string title = "Real VR Fishing  <color=#45C7DB>PC Mode</color>";
             float w = pad * 2f + Mathf.Max(lw + gap + rw, Ui.Width(title, titleStyle) + hide + settings + Ui.S(40f));
@@ -673,7 +765,7 @@ namespace RealVRFishingPCMode
             Ui.Label(new Rect(x + pad, cy, w, Ui.S(26f)), title, titleStyle, Ui.Text);
             float hx = x + w - pad - settings;
             Ui.KeyLine(hx, cy + Ui.S(1f), f10, "settings", chip, 13);
-            Ui.KeyLine(hx - Ui.S(16f) - hide, cy + Ui.S(1f), f1, "hide", chip, 13);
+            Ui.KeyLine(hx - Ui.S(16f) - hide, cy + Ui.S(1f), f1, next, chip, 13);
             cy += Ui.S(30f) + Ui.S(6f);
             Ui.Box(new Rect(x + pad, cy, w - 2f * pad, Mathf.Max(1f, Ui.Scale)), Ui.Edge, 0f);
             cy += Ui.S(8f);

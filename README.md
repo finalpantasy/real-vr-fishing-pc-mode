@@ -17,7 +17,9 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 - **Power-bar casting.** Hold left-click to wind up and let go to cast toward your crosshair.
 - **Real fights.** Reel with left-click, set the hook with right-click, and swing the rod with A / D when a fish jumps. Reeling is never faster than in VR, so it stays fair.
 - **Photo mode.** Hold your fish up, spin it, hide your hands, show the catch card, fly the camera around and save a picture.
-- **Controller support.** Play with an Xbox or PlayStation controller: sticks to look and walk, triggers to cast, reel and set the hook. Choose Xbox or PlayStation button labels.
+- **Full-screen catch screen (optional).** Turn it on in F10 to swap the game's floating board for a full-screen catch screen: the scene dimmed behind, your live fish across the middle (turn it with the mouse, zoom with the wheel), a scale from the smallest to the biggest of its kind with pins for this fish and your best, and your count, level and credits. **Space** keeps it for credits, **Backspace** releases it for experience, and **H** switches to the game's own board. The screen slides in, and when you choose, the fish swims off or drops into your keep while your credits or experience float up (turn the animations off in F10 for an instant screen).
+- **Stats corner.** Your level and experience, season scores, credits, species and fish caught at the top right while you fish, with this session's catches, biggest fish and earnings under them. Switch each one on or off in F10, or show the corner only for a few seconds when something changes.
+- **Controller support.** Play with an Xbox or PlayStation controller: sticks to look and walk, triggers to cast, reel and set the hook, and rumble when a fish bites. The triggers are pressure-sensitive (full speed needs a near-full pull), or set either one to Full. Choose Xbox or PlayStation button labels.
 - **Settings in game.** Press **F10** to change mouse sensitivity, field of view, casting and more, and to change any key or controller button.
 - **Quick tips on first start.** A short card shows how to cast, reel and open the settings.
 
@@ -26,6 +28,10 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 | ![Holding left-click fills the power bar](docs/images/power-cast.jpg) | ![The rod bends while a fish fights on Han River](docs/images/fight.jpg) |
 | **Landing the catch** | **Photo mode** |
 | ![A sturgeon swung out of the water](docs/images/landing.jpg) | ![Turning a fish in photo mode](docs/images/photo-mode-spin.gif) |
+
+![The full-screen catch screen: a live largemouth bass at 4.433 lb, on a scale from the smallest to the biggest of its kind with your best marked, your stats, and Keep for 43 credits or Release for 9 XP](docs/images/catch-screen.jpg)
+
+![The stats corner at the top right over the Han River at night: level 4 at 45 of 57 XP, freshwater and saltwater season scores, 2,188 credits, 9 of 617 species, 26 fish caught, and this session's 2 fish, credits and biggest fish](docs/images/stats-corner.jpg)
 
 ## Install
 
@@ -37,7 +43,7 @@ You only do this once. It takes about two minutes.
 4. **Check it.** `winhttp.dll` and a `BepInEx` folder should now be in the game folder, right next to `RealVrFishing.exe`. They must not be in a subfolder.
 5. **Play.** Start the game from Steam as usual. The first start takes a little longer than normal.
 
-**It worked** if a welcome card with three tips shows when you reach the lodge, and a list of controls shows at the top-left of the screen. Press **F1** to hide the list or show it again.
+**It worked** if a welcome card with three tips shows when you reach the lodge, and a list of controls shows at the top-left of the screen. Press **F1** to switch the list between full, small and hidden.
 
 ![The controls list shown at the top-left in game](docs/images/controls-card.jpg)
 
@@ -53,16 +59,17 @@ You only do this once. It takes about two minutes.
 | Hold left-click | Reel in (hold Ctrl too for slow reeling) |
 | Right-click | Twitch the lure, set the hook, swing a landed fish in |
 | A / D | Swing the rod left / right when a fish jumps |
-| Z | Zoom in |
+| Z | Zoom: press to step in, in more, back out |
 | Hold Alt | Free the mouse cursor |
-| Tab | Game menu |
+| Tab | Game menu (if the LIV camera tablet is open, the first press puts it away) |
 | WASD | Walk in the lodge (Shift runs) |
 | Arrow keys or mouse wheel | Lure depth and bait (the VR thumbstick) |
 | F | Grab |
 | E / R, Q / G | The VR controller's A / B and X / Y buttons |
+| C / V | The other hand's trigger / grip |
 | Page Up / Page Down | Make yourself taller / shorter |
 | Home | Reset the view |
-| F1 | Show or hide the controls list |
+| F1 | Controls list: full, small, hidden |
 | P | Photo mode |
 | F10 | Settings and keys |
 
@@ -80,18 +87,32 @@ Plug in an Xbox or PlayStation controller (USB or Bluetooth) and just use it. Th
 | Left stick | Walk in the lodge (click it to run); flick left / right when a fish jumps |
 | RT / R2 | Hold and let go to cast; hold to reel (pull lightly to reel slowly) |
 | LT / L2 | Twitch the lure, set the hook, swing a landed fish in |
-| LB / L1 | Zoom |
+| LB / L1 | Zoom: press to step in, in more, back out |
 | RB / R1 | Grab |
 | D-pad up / down | Lure depth and bait |
 | D-pad left / right | Spin a landed fish |
 | A, B, X, Y / Cross, Circle, Square, Triangle | The VR controller's A, B, X, Y buttons |
-| Menu / Options | Game menu |
-| View / Create | Show or hide the controls list |
+| Start / Options | Game menu |
+| Select / Create | Controls list: full, small, hidden |
 | Right stick click | Reset the view |
 
-Press **F10** on the keyboard and open the **Controller** tab to change any button, pick Xbox or PlayStation labels, set the look speed, or invert looking up and down.
+Press **F10** on the keyboard and open the **Controller** tab to change any button, pick Xbox or PlayStation labels, set the look speed, invert looking up and down, or change how strongly it rumbles. The controller ticks lightly when a fish nibbles, thumps hard when it takes the bait (set the hook), and rumbles steadily while the line is red (ease off).
 
 ![The controls list with Xbox buttons, and with PlayStation buttons](docs/images/controller-cards.jpg)
+
+### Catch screen
+
+With the full-screen catch screen on (F10), after you land a fish:
+
+| Key | What it does |
+| --- | --- |
+| Space | Keep the fish for credits |
+| Backspace | Release the fish for experience |
+| Mouse | Turn the fish |
+| Mouse wheel | Zoom |
+| Hold Alt | Free the mouse cursor |
+| H | Switch to the game's own board, and back |
+| P | Photo mode |
 
 ### Photo mode
 
@@ -104,6 +125,7 @@ Press **P** any time, best right after you land a fish. Menus disappear and the 
 | Mouse | Look around (your fish stays in front of you) |
 | Middle mouse + move | Turn the fish |
 | Mouse wheel | Zoom |
+| Ctrl + mouse wheel | Hold the fish nearer or farther |
 | F | Hold the fish up, or put it back |
 | H | Hide your hands, rod, line and float |
 | B | Show the catch card with the fish's size and value |
@@ -138,8 +160,11 @@ That file is the BepInEx mod loader, which many Unity game mods use. It is open 
 **Is this cheating?**
 No. Reeling, line strength and fish behavior are the same as in VR. Click-to-cast is off in online rooms unless you turn it on in the settings.
 
+**Can I use two-handed reeling?**
+No. The mod always uses one-handed reeling, where holding the reel button reels. The game's two-handed reeling needs a VR hand turning the crank, which a mouse or controller can't do, so the mod switches the game's hand setting to one-handed. The game saves that setting, so if you go back to VR and want two-handed reeling, switch it back in the game's settings.
+
 **Will it break my save?**
-No. The mod never touches your save files.
+No. The mod never writes your save files itself. The game saves as it always does, and the only game setting the mod changes is one-handed reeling (above).
 
 **The game updated and the mod stopped working.**
 Check the [releases page](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases) for a newer version. If there is none yet, [open an issue](https://github.com/finalpantasy/real-vr-fishing-pc-mode/issues) and attach `BepInEx\LogOutput.log` from the game folder.
@@ -157,9 +182,9 @@ Press **F10** in game. Changes apply right away and are saved when you close the
 | **Controller tab** | |
 | ![The F10 controller tab with button labels, look speed and every controller button](docs/images/panel-controller.jpg) | |
 
-- **Settings:** mouse sensitivity, field of view, zoom, eye height, cast mode, power bar speed, rod angle, walk speed, mouse casting in online rooms and sharper far scenery. **Reset settings** puts them back.
+- **Settings:** each one has a line saying what it does. Mouse sensitivity, field of view, two zoom levels, eye height, cast mode, power bar speed, rod angle, walk speed, mouse casting in online rooms, sharper distant scenery, a frame rate limit (Monitor by default) and the update check (once per start the mod asks GitHub for the latest version, and F10 shows a link when a newer one is out). **Reset settings** puts them back.
 - **Keys:** click a key, then press the new key or mouse button. Esc cancels. An orange note shows when two actions share a key. **Reset keys** puts them all back. F9, F10 and Esc can't be changed, so you can always get back in.
-- **Controller:** Xbox or PlayStation button labels, look speed and invert look. Click a button, then press the new controller button or push the left stick. Delete clears it. **Reset controller** puts everything back.
+- **Controller:** Xbox or PlayStation button labels, look speed, invert look and rumble strength. Click a button, then press the new controller button or push the left stick. Delete clears it. **Reset controller** puts everything back.
 
 Everything is also in the settings file, `BepInEx\config\com.finalpantasy.realvrfishing.pcmode.cfg` in the game folder. Edit it with Notepad while the game is closed. Each setting has a description in the file. One setting is only in the file:
 

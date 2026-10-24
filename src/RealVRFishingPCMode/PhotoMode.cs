@@ -14,13 +14,18 @@ namespace RealVRFishingPCMode
     // In or out of photo mode, holding the middle mouse button turns a landed fish instead of your head.
     static class PhotoMode
     {
-        const int VK_MBUTTON = 0x04, VK_RETURN = 0x0D, VK_SHIFT = 0x10, VK_SPACE = 0x20, VK_HOME = 0x24;
+        const int VK_MBUTTON = 0x04, VK_CONTROL = 0x11, VK_RETURN = 0x0D, VK_SHIFT = 0x10, VK_SPACE = 0x20, VK_HOME = 0x24, VK_OEM_4 = 0xDB, VK_OEM_6 = 0xDD;
+        const float MaxHold = 6f;
         const float MaxFly = 8f, MinEyeHeight = 0.3f;
 
         public static bool On;
         public static Vector3 CamOffset;
         public static float Fov;
-        static bool holdFish = true, hideHands, showBoard;
+        static bool holdFish = true, hideHands;
+        // the catch card: 0 hidden, 1 right of the fish, 2 left of it; [ and ] size it
+        static int boardMode;
+        static float boardSize = 1f;
+        static bool showBoard => boardMode != 0;
 
         // the catch board (length, weight, value): shown beside the held fish without its Keep / Release buttons
         static Transform boardPivot;
@@ -84,14 +89,16 @@ namespace RealVRFishingPCMode
             if (Pressed(focused, VK_RETURN)) Capture();
             if (Pressed(focused, 'F')) holdFish = !holdFish;
             if (Pressed(focused, 'H')) { hideHands = !hideHands; HideHands(d, hideHands, log: true); }
-            if (Pressed(focused, 'B')) { showBoard = !showBoard; if (!showBoard) RestoreBoard(); }
+            if (Pressed(focused, 'B')) { boardMode = (boardMode + 1) % 3; if (!showBoard) RestoreBoard(); }
+            if (focused && Win.Down(VK_OEM_4)) boardSize = Mathf.Max(0.4f, boardSize - dt);
+            if (focused && Win.Down(VK_OEM_6)) boardSize = Mathf.Min(2.5f, boardSize + dt);
             if (focused && Win.Down(VK_HOME)) { CamOffset = Vector3.zero; Fov = 0f; }
 
             float wheel = focused ? Win.Wheel() : 0f;
             if (wheel != 0f)
             {
-                if (focused && Win.Down(VK_MBUTTON) && fish != null) holdDistance = Mathf.Clamp(holdDistance - wheel * 0.05f, 0.35f, 2.5f);
-                else Fov = Mathf.Clamp((Fov > 0f ? Fov : Plugin.FieldOfView.Value) - wheel * 4f, 10f, 100f);
+                if (focused && (Win.Down(VK_CONTROL) || Win.Down(VK_MBUTTON)) && fish != null) holdDistance = Mathf.Clamp(holdDistance - wheel * 0.05f * Mathf.Max(1f, holdDistance), 0.35f, MaxHold);
+                else Fov = Mathf.Clamp((Fov > 0f ? Fov : Plugin.FieldOfView.Value) - wheel * 4f, 10f, 120f);
             }
 
             if (focused)
@@ -137,7 +144,7 @@ namespace RealVRFishingPCMode
                 hiddenCanvases.Clear();
                 hideHands = false;
                 HideHands(d, false);
-                showBoard = false;
+                boardMode = 0;
                 RestoreBoard();
                 RestoreBait();
                 CamOffset = Vector3.zero;
@@ -183,6 +190,7 @@ namespace RealVRFishingPCMode
                 {
                     spin = f.fishPivot.localEulerAngles.z;
                     tilt = 0f;
+                    FitFish(f);
                 }
             }
         }
@@ -207,6 +215,19 @@ namespace RealVRFishingPCMode
             }
             fish.fishPivot.localRotation = Quaternion.Euler(tilt, 0f, spin);
             if (On && showBoard) PlaceBoard(head);
+        }
+
+        // back far enough that the whole fish fits in about 60% of the view's height, so a big catch is all in frame
+        static void FitFish(fishSetScript f)
+        {
+            var rs = f.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return;
+            var b = rs[0].bounds;
+            foreach (var r in rs) b.Encapsulate(r.bounds);
+            float size = Mathf.Max(b.size.x, b.size.y, b.size.z);
+            float fov = Fov > 0f ? Fov : Plugin.FieldOfView.Value;
+            float fit = size / (0.6f * 2f * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad));
+            holdDistance = Mathf.Clamp(fit, 0.7f, MaxHold);
         }
 
         static Canvas BoardCanvas() => main != null && main.scoreController != null ? main.scoreController.canvas : null;
@@ -236,15 +257,12 @@ namespace RealVRFishingPCMode
             if (boardRelease != null) boardRelease.SetActive(false);
             if (!holdFish || head == null) { boardPivot.position = boardPos; boardPivot.rotation = boardRot; boardPivot.localScale = boardScale; return; }
 
-            // same distance as the fish, just to its right, sized to about a third of the view
-            var fwd = head.forward;
-            var flat = new Vector3(fwd.x, 0f, fwd.z);
-            flat = flat.sqrMagnitude > 1e-6f ? flat.normalized : Vector3.forward;
-            var right = Vector3.Cross(Vector3.up, flat);
-            float width = 0.55f * holdDistance;
+            // same distance as the fish, beside it, flat to the screen however you look
+            float width = 0.55f * holdDistance * boardSize;
+            float side = boardMode == 2 ? -1f : 1f;
             boardPivot.localScale = boardScale * (width / boardWidth);
-            boardPivot.rotation = Quaternion.LookRotation(flat, Vector3.up);
-            boardPivot.position = head.position + fwd * holdDistance + right * (0.12f * holdDistance + width * 0.5f) - Vector3.up * 0.1f * holdDistance;
+            boardPivot.rotation = Quaternion.LookRotation(head.forward, head.up);
+            boardPivot.position = head.position + head.forward * holdDistance + head.right * side * (0.12f * holdDistance + width * 0.5f) - head.up * 0.1f * holdDistance;
         }
 
         static void RestoreBoard()
@@ -288,15 +306,24 @@ namespace RealVRFishingPCMode
             }
         }
 
+        // the game switches gloves back on in its own updates, so hidden ones are switched off again just before each frame draws
+        static bool cullHooked;
+        static void BeforeCull(Camera c)
+        {
+            if (!hideHands || !On) return;
+            foreach (var r in hiddenRenderers) if (r != null && r.enabled) r.enabled = false;
+        }
+
         static void HideHands(Driver d, bool hide, bool log = false)
         {
+            if (!cullHooked) { Camera.onPreCull += BeforeCull; cullHooked = true; }
             if (!hide)
             {
                 foreach (var r in hiddenRenderers) if (r != null) r.enabled = true;
                 hiddenRenderers.Clear();
                 return;
             }
-            nextHandScan = Time.unscaledTime + 3f;
+            nextHandScan = Time.unscaledTime + 1f;
             var keep = new List<Transform>();
             if (fish != null) keep.Add(fish.transform);
             if (main != null && main.baitController != null) keep.Add(main.baitController.transform);
@@ -323,7 +350,7 @@ namespace RealVRFishingPCMode
                     handPoints.Add(root.position);
             foreach (var r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
-                if (LooksLikeHand(r.transform)) { found.Add(r); continue; }
+                if (LooksLikeHand(r.transform) || MeshLooksLikeHand(r)) { found.Add(r); continue; }
                 var b = r.bounds;
                 if (b.size.magnitude < 0.6f && handPoints.Exists(p => (b.center - p).sqrMagnitude < 0.3f * 0.3f)) found.Add(r);
             }
@@ -357,7 +384,36 @@ namespace RealVRFishingPCMode
                 hiddenRenderers.Add(r);
                 names?.Add((r.transform.parent != null ? r.transform.parent.name + "/" : "") + r.name);
             }
-            if (log) Plugin.Log.LogInfo($"photo: hid {names.Count}: {string.Join(", ", names.ToArray())}");
+            if (log)
+            {
+                Plugin.Log.LogInfo($"photo: hid {names.Count}: {string.Join(", ", names.ToArray())}");
+                // anything still drawn close to the camera, in case the game shows a hand we don't recognize
+                var cam = Camera.main;
+                if (cam != null)
+                {
+                    var near = new List<string>();
+                    foreach (var r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                        if (r.enabled && r.isVisible && !hiddenRenderers.Contains(r) && (r.bounds.center - cam.transform.position).sqrMagnitude < 2.5f * 2.5f)
+                            near.Add(NamePath(r.transform));
+                    Plugin.Log.LogInfo($"photo: still drawn near the camera: {string.Join(", ", near.ToArray())}");
+                }
+            }
+        }
+
+        static string NamePath(Transform t)
+        {
+            string p = t.name;
+            for (int i = 0; i < 3 && t.parent != null; i++) { t = t.parent; p = t.name + "/" + p; }
+            return p;
+        }
+
+        static bool MeshLooksLikeHand(Renderer r)
+        {
+            Mesh m = r is SkinnedMeshRenderer s ? s.sharedMesh : r.GetComponent<MeshFilter>()?.sharedMesh;
+            string n = m != null ? m.name.ToLowerInvariant() : "";
+            if (n.Contains("glove") || (n.Contains("hand") && !n.Contains("handle"))) return true;
+            var mat = r.sharedMaterial;
+            return mat != null && mat.name.ToLowerInvariant().Contains("glove");
         }
 
         static bool LooksLikeHand(Transform t)
@@ -365,7 +421,7 @@ namespace RealVRFishingPCMode
             for (int i = 0; i < 3 && t != null; i++, t = t.parent)
             {
                 string n = t.name.ToLowerInvariant();
-                if (n.Contains("glove") || n.StartsWith("hand") || n.Contains("_hand") || n.Contains("hand_")) return true;
+                if (n.Contains("glove") || (n.Contains("hand") && !n.Contains("handle"))) return true;
             }
             return false;
         }
@@ -407,11 +463,13 @@ namespace RealVRFishingPCMode
                 Item("Up, down", "E", "Q"),
                 Item("Zoom", "Wheel"),
                 Item("Hide hands", "H"),
-                Item("Catch card", "B"),
+                Item(boardMode == 0 ? "Catch card" : boardMode == 1 ? "Card left" : "Hide card", "B"),
             };
             if (fish != null)
             {
                 items.Add(Item("Turn fish", "Middle mouse"));
+                items.Add(Item("Fish nearer, farther", "Ctrl + wheel"));
+                if (showBoard) items.Add(Item("Card size", "[", "]"));
                 items.Add(Item(holdFish ? "Put fish back" : "Hold fish up", "F"));
             }
             items.Add(Item("Reset", "Home"));

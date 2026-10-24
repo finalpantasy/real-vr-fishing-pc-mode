@@ -15,6 +15,7 @@
     <Reference Include="BepInEx"><HintPath>$(GameDir)\BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(GameDir)\BepInEx\core\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Assembly-CSharp"><HintPath>$(Managed)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Obi"><HintPath>$(Managed)\Obi.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Oculus.VR"><HintPath>$(Managed)\Oculus.VR.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="PhotonUnityNetworking"><HintPath>$(Managed)\PhotonUnityNetworking.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine"><HintPath>$(Managed)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
@@ -28,6 +29,7 @@
     <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(Managed)/UnityEngine.ImageConversionModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(Managed)\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.UI"><HintPath>$(Managed)\UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule"><HintPath>$(Managed)\UnityEngine.UnityWebRequestModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Unity.InputSystem"><HintPath>$(Managed)\Unity.InputSystem.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 </Project>

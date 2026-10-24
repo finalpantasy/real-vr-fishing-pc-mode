@@ -15,6 +15,8 @@ namespace RealVRFishingPCMode
         public static ConfigEntry<string> Glyphs;
         public static ConfigEntry<float> LookSpeed;
         public static ConfigEntry<bool> InvertLook;
+        public static ConfigEntry<float> RumbleStrength;
+        public static ConfigEntry<string> ReelTrigger, HookTrigger;
 
         public static bool PlayStation => Glyphs.Value == "PlayStation";
         // true after the controller was used last; the controls card then shows controller buttons
@@ -30,6 +32,11 @@ namespace RealVRFishingPCMode
                 new AcceptableValueList<string>("Xbox", "PlayStation")));
             LookSpeed = cfg.Bind("Controller", "LookSpeed", 160f, "Degrees per second the right stick turns the view when pushed all the way.");
             InvertLook = cfg.Bind("Controller", "InvertLook", false, "Push the right stick up to look down.");
+            RumbleStrength = cfg.Bind("Controller", "Rumble", 1f, "How strongly the controller rumbles: a tick on each nibble, a thump on the strike, and a steady rumble while the line is red. 0 turns it off.");
+            ReelTrigger = cfg.Bind("Controller", "ReelTrigger", "Squeeze", new ConfigDescription("Squeeze: the reel trigger reels faster the further you pull it, with full speed only near a full pull. Full: any pull reels at full speed.",
+                new AcceptableValueList<string>("Squeeze", "Full")));
+            HookTrigger = cfg.Bind("Controller", "HookTrigger", "Squeeze", new ConfigDescription("Squeeze: the hook trigger jerks the rod as sharply as you squeeze it and raises it as far as you hold it. Full: any pull is a full jerk and a full raise.",
+                new AcceptableValueList<string>("Squeeze", "Full")));
         }
 
         public static bool Connected => pad != null;
@@ -39,10 +46,63 @@ namespace RealVRFishingPCMode
         public static void Tick(bool focused)
         {
             try { pad = Gamepad.current; } catch { pad = null; }
-            if (pad == null || !focused || Win.Scripted) { LeftStick = RightStick = Vector2.zero; return; }
-            LeftStick = Shape(pad.leftStick.ReadValue());
-            RightStick = Shape(pad.rightStick.ReadValue());
-            if (LeftStick != Vector2.zero || RightStick != Vector2.zero || FirstDown() != Button.None) InUse = true;
+            bool live = pad != null && focused && !Win.Scripted;
+            if (!live) LeftStick = RightStick = Vector2.zero;
+            else
+            {
+                LeftStick = Shape(pad.leftStick.ReadValue());
+                RightStick = Shape(pad.rightStick.ReadValue());
+                if (LeftStick != Vector2.zero || RightStick != Vector2.zero || FirstDown() != Button.None) InUse = true;
+            }
+            Rumble(live && InUse);
+        }
+
+        // The game buzzes the VR controllers almost nonstop (every reel turn, every tug of the fish), which on a gamepad
+        // is one long hard rumble. The pad keeps to three signals that each feel different:
+        //   a nibble (the float dips): one quick light tick on the small fast motor
+        //   the strike (the fish takes it, set the hook now): one short hard thump on both motors
+        //   a red line while reeling: a steady rumble that holds until the line is safe again
+        // and a soft buzz while a fish jumps.
+        static Gamepad rumbling;
+        static float lowNow = -1f, highNow = -1f, nibbleUntil, strikeUntil;
+
+        public static void Nibble() => nibbleUntil = Time.unscaledTime + 0.08f;
+        public static void Strike() => strikeUntil = Time.unscaledTime + 0.35f;
+
+        // (heavy low-frequency motor, light high-frequency motor)
+        static Vector2 Wanted()
+        {
+            float t = Time.unscaledTime;
+            if (t < strikeUntil) return new Vector2(0.9f, 0.8f);
+            var main = Singleton<Main>.Instance;
+            var fc = main != null ? main.fishingController : null;
+            if (fc != null && fc.gameState == FISHINGSTATE.FIGHTING)
+            {
+                if (fc.lineTensionStressed) return new Vector2(0.45f, 0.6f);
+                if (main.baitController != null && main.baitController.GetIsFishJump()) return new Vector2(0f, 0.3f);
+            }
+            if (t < nibbleUntil) return new Vector2(0f, 0.4f);
+            return Vector2.zero;
+        }
+
+        static void Rumble(bool on)
+        {
+            var m = Vector2.zero;
+            if (on) try { m = Wanted() * RumbleStrength.Value; } catch { }
+            float low = Mathf.Clamp01(m.x), high = Mathf.Clamp01(m.y);
+            if (rumbling != null && rumbling != pad) StopRumble();
+            if (pad == null) { lowNow = highNow = -1f; return; }
+            if (Mathf.Abs(low - lowNow) < 0.01f && Mathf.Abs(high - highNow) < 0.01f) return;
+            try { pad.SetMotorSpeeds(low, high); } catch { }
+            lowNow = low; highNow = high;
+            rumbling = low > 0f || high > 0f ? pad : null;
+        }
+
+        public static void StopRumble()
+        {
+            if (rumbling != null) try { rumbling.SetMotorSpeeds(0f, 0f); } catch { }
+            rumbling = null;
+            lowNow = highNow = -1f;
         }
 
         // a round dead zone, rescaled so the stick still reaches full speed
@@ -91,6 +151,17 @@ namespace RealVRFishingPCMode
             return Down(b) ? 1f : 0f;
         }
 
+        // the reel trigger's pull as the game's trigger value. With a fish on the game reels slow under 0.33, normal
+        // under 0.66 and fast above (bringing a lure in, as fast as the value), so the pull is spread out: slow to
+        // 40%, normal to 85%, fast past that
+        public static float ReelValue(float pull)
+        {
+            if (ReelTrigger.Value == "Full") return 1f;
+            if (pull < 0.4f) return Mathf.Lerp(0.2f, 0.33f, pull / 0.4f);
+            if (pull < 0.85f) return Mathf.Lerp(0.33f, 0.66f, (pull - 0.4f) / 0.45f);
+            return Mathf.Lerp(0.66f, 1f, (pull - 0.85f) / 0.12f);
+        }
+
         // the first button held, for rebinding (stick directions only when asked)
         public static Button FirstDown(bool sticks = false)
         {
@@ -125,8 +196,8 @@ namespace RealVRFishingPCMode
                 case Button.RB: return ps ? "R1" : "RB";
                 case Button.LT: return ps ? "L2" : "LT";
                 case Button.RT: return ps ? "R2" : "RT";
-                case Button.View: return ps ? "Create" : "View";
-                case Button.Menu: return ps ? "Options" : "Menu";
+                case Button.View: return ps ? "Create" : "Select";
+                case Button.Menu: return ps ? "Options" : "Start";
                 case Button.LS: return ps ? "L3" : "LS click";
                 case Button.RS: return ps ? "R3" : "RS click";
                 case Button.DpadUp: return "D-pad ↑";
@@ -140,5 +211,18 @@ namespace RealVRFishingPCMode
             }
             return b.ToString();
         }
+    }
+
+    [HarmonyLib.HarmonyPatch(typeof(FishingController), "BiteFish")]
+    static class StrikeRumble
+    {
+        static void Postfix() => Pad.Strike();
+    }
+
+    // each little dip of the float while a fish picks at the bait
+    [HarmonyLib.HarmonyPatch(typeof(BobberController), "SetBobberAnimation")]
+    static class NibbleRumble
+    {
+        static void Postfix(string __0) { if (__0 == "Bite2") Pad.Nibble(); }
     }
 }
