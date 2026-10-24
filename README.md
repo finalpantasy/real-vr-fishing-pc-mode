@@ -8,7 +8,7 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 
 [**Download the latest version**](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest)
 
-![A 28 inch Chinese sturgeon held up in photo mode, with its catch card](docs/images/photo-mode.jpg)
+![Photo mode: a spotted barbel held up over the Han River with the Seoul skyline behind it, and the photo mode keys along the bottom](docs/images/photo-mode.jpg)
 
 ## What you get
 
@@ -23,11 +23,11 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 - **Settings in game.** Press **F10** to change mouse sensitivity, field of view, casting and more, and to change any key or controller button.
 - **Quick tips on first start.** A short card shows how to cast, reel and open the settings.
 
-| Power-bar casting | Fighting a fish |
+| Power-bar casting | A fish jumps on the line |
 | --- | --- |
-| ![Holding left-click fills the power bar](docs/images/power-cast.jpg) | ![The rod bends while a fish fights on Han River](docs/images/fight.jpg) |
-| **Landing the catch** | **Photo mode** |
-| ![A sturgeon swung out of the water](docs/images/landing.jpg) | ![Turning a fish in photo mode](docs/images/photo-mode-spin.gif) |
+| ![Holding left-click fills the power bar next to the crosshair, with the stats corner at the top right](docs/images/power-cast.jpg) | ![A fish leaps out of the Han River while the rod bends](docs/images/fish-jump.jpg) |
+| **Landing the catch** | **Keep it for credits** |
+| ![A spotted barbel swung out of the water on the line](docs/images/landing.jpg) | ![The kept fish drops away while +28 credits floats up](docs/images/keep.jpg) |
 
 ![The full-screen catch screen: a live largemouth bass at 4.433 lb, on a scale from the smallest to the biggest of its kind with your best marked, your stats, and Keep for 43 credits or Release for 9 XP](docs/images/catch-screen.jpg)
 
@@ -37,7 +37,7 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 
 You only do this once. It takes about two minutes.
 
-1. **Download** `RealVRFishingPCMode-v0.8.0.zip` from the [latest release](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest). Find it under **Assets**.
+1. **Download** `RealVRFishingPCMode-v0.8.1.zip` from the [latest release](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest). Find it under **Assets**.
 2. **Open the game folder.** In Steam, right-click **Real VR Fishing**, then click **Manage**, then **Browse local files**. A folder opens with `RealVrFishing.exe` in it.
 3. **Copy the mod in.** Open the zip, select everything inside it (Ctrl+A), and drag it into the game folder. If Windows asks about replacing files, click **Replace**.
 4. **Check it.** `winhttp.dll` and a `BepInEx` folder should now be in the game folder, right next to `RealVrFishing.exe`. They must not be in a subfolder.
@@ -45,9 +45,7 @@ You only do this once. It takes about two minutes.
 
 **It worked** if a welcome card with three tips shows when you reach the lodge, and a list of controls shows at the top-left of the screen. Press **F1** to switch the list between full, small and hidden.
 
-![The controls list shown at the top-left in game](docs/images/controls-card.jpg)
-
-![The first-start tips card: cast, reel and hook, settings](docs/images/tips.jpg)
+![The controls list at the top-left and the stats corner at the top-right, over the Han River](docs/images/controls-list.jpg)
 
 ## Controls
 
@@ -96,9 +94,7 @@ Plug in an Xbox or PlayStation controller (USB or Bluetooth) and just use it. Th
 | Select / Create | Controls list: full, small, hidden |
 | Right stick click | Reset the view |
 
-Press **F10** on the keyboard and open the **Controller** tab to change any button, pick Xbox or PlayStation labels, set the look speed, invert looking up and down, or change how strongly it rumbles. The controller ticks lightly when a fish nibbles, thumps hard when it takes the bait (set the hook), and rumbles steadily while the line is red (ease off).
-
-![The controls list with Xbox buttons, and with PlayStation buttons](docs/images/controller-cards.jpg)
+Press **F10** on the keyboard and open the **Controller** tab to pick Xbox or PlayStation labels, set the look speed, invert looking up and down, change how strongly it rumbles, or make either trigger Squeeze or Full. The **Buttons** tab changes any button. The controller ticks lightly when a fish nibbles, thumps hard when it takes the bait (set the hook), and rumbles steadily while the line is red (ease off).
 
 ### Catch screen
 
@@ -152,7 +148,7 @@ Either way, the game is back to normal and plays in VR again. Your saves are not
 ## Questions
 
 **Nothing changed, the game still wants VR.**
-The files ended up in the wrong place. `winhttp.dll` must sit right next to `RealVrFishing.exe`, not inside a folder like `RealVRFishingPCMode-v0.8.0`. Move the files up one level.
+The files ended up in the wrong place. `winhttp.dll` must sit right next to `RealVrFishing.exe`, not inside a folder like `RealVRFishingPCMode-v0.8.1`. Move the files up one level.
 
 **My antivirus flagged `winhttp.dll`.**
 That file is the BepInEx mod loader, which many Unity game mods use. It is open source ([Unity Doorstop](https://github.com/NeighTools/UnityDoorstop)) and gets flagged because it loads into the game. Allow it, or download BepInEx yourself from its [official page](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5) to compare.
@@ -176,15 +172,21 @@ Check the [releases page](https://github.com/finalpantasy/real-vr-fishing-pc-mod
 
 Press **F10** in game. Changes apply right away and are saved when you close the panel (F10, Esc or **Done**).
 
-| Settings tab | Keys tab |
+| View tab | View tab, stats corner |
 | --- | --- |
-| ![The F10 settings tab with sliders for sensitivity, field of view and casting](docs/images/panel-settings.jpg) | ![The F10 keys tab listing every key](docs/images/panel-keys.jpg) |
-| **Controller tab** | |
-| ![The F10 controller tab with button labels, look speed and every controller button](docs/images/panel-controller.jpg) | |
+| ![The F10 View tab: mouse sensitivity, field of view, two zoom levels, eye height, controls list, aim dot and stats corner](docs/images/settings-view.jpg) | ![The View tab scrolled down: each stat in the stats corner switched on or off, tutorial text position and walk speed](docs/images/settings-stats.jpg) |
+| **Fishing tab** | **Keys tab** |
+| ![The F10 Fishing tab: cast mode, power bar speed, mouse casting online, rod angle and tilt, full-screen catch screen and its animations](docs/images/settings-fishing.jpg) | ![The F10 Keys tab listing every key, including Space and Backspace for the catch screen](docs/images/settings-keys.jpg) |
+| **Controller tab** | **Buttons tab** |
+| ![The F10 Controller tab: Xbox or PlayStation labels, look speed, invert look, rumble, and Squeeze or Full for each trigger](docs/images/settings-controller.jpg) | ![The F10 Buttons tab listing every controller button](docs/images/settings-buttons.jpg) |
 
-- **Settings:** each one has a line saying what it does. Mouse sensitivity, field of view, two zoom levels, eye height, cast mode, power bar speed, rod angle, walk speed, mouse casting in online rooms, sharper distant scenery, a frame rate limit (Monitor by default) and the update check (once per start the mod asks GitHub for the latest version, and F10 shows a link when a newer one is out). **Reset settings** puts them back.
+Every setting has a line saying what it does, and **Reset this tab** puts a tab back.
+
+- **View:** mouse sensitivity, field of view, two zoom levels, eye height, the controls list (full, small or off), the aim dot, the stats corner and each stat in it, where tutorial text shows, and walk speed.
+- **Fishing:** cast mode, power bar speed, mouse casting in online rooms, rod angle, whether the rod tilts with your view, the full-screen catch screen and its animations.
+- **System:** sharper distant scenery, a frame rate limit (Monitor by default) and the update check (once per start the mod asks GitHub for the latest version, and F10 shows a link when a newer one is out).
 - **Keys:** click a key, then press the new key or mouse button. Esc cancels. An orange note shows when two actions share a key. **Reset keys** puts them all back. F9, F10 and Esc can't be changed, so you can always get back in.
-- **Controller:** Xbox or PlayStation button labels, look speed, invert look and rumble strength. Click a button, then press the new controller button or push the left stick. Delete clears it. **Reset controller** puts everything back.
+- **Controller and Buttons:** Xbox or PlayStation button labels, look speed, invert look, rumble strength, and Squeeze or Full for the reel and hook triggers. On **Buttons**, click a button, then press the new controller button or push the left stick. Delete clears it. **Reset buttons** puts them all back.
 
 Everything is also in the settings file, `BepInEx\config\com.finalpantasy.realvrfishing.pcmode.cfg` in the game folder. Edit it with Notepad while the game is closed. Each setting has a description in the file. One setting is only in the file:
 
