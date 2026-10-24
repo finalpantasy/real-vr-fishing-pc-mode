@@ -1,5 +1,7 @@
 # Real VR Fishing PC Mode
 
+[![Support me on Ko-fi](https://img.shields.io/badge/Ko--fi-support%20this%20mod-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/finalpantasy)
+
 **Play Real VR Fishing on your monitor with a mouse and keyboard. No VR headset, no SteamVR.**
 
 A free mod for the Steam version of Real VR Fishing. It replaces the VR controllers with mouse and keyboard controls, so you can cast, reel, fight and land fish at your desk. It also adds a photo mode for showing off your catches.
@@ -26,7 +28,7 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 
 You only do this once. It takes about two minutes.
 
-1. **Download** `RealVRFishingPCMode-v0.6.2.zip` from the [latest release](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest). Find it under **Assets**.
+1. **Download** `RealVRFishingPCMode-v0.6.3.zip` from the [latest release](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest). Find it under **Assets**.
 2. **Open the game folder.** In Steam, right-click **Real VR Fishing**, then click **Manage**, then **Browse local files**. A folder opens with `RealVrFishing.exe` in it.
 3. **Copy the mod in.** Open the zip, select everything inside it (Ctrl+A), and drag it into the game folder. If Windows asks about replacing files, click **Replace**.
 4. **Check it.** `winhttp.dll` and a `BepInEx` folder should now be in the game folder, right next to `RealVrFishing.exe`. They must not be in a subfolder.
@@ -79,7 +81,7 @@ Press **P** any time, best right after you land a fish. Menus disappear and the 
 
 ## Uninstall
 
-**Easy way:** open the game folder (Steam: right-click **Real VR Fishing**, **Manage**, **Browse local files**) and double-click **`Uninstall Real VR Fishing PC Mode.bat`**. Press **Y** to confirm.
+**Easy way:** close the game, open the game folder (Steam: right-click **Real VR Fishing**, **Manage**, **Browse local files**) and double-click **`Uninstall Real VR Fishing PC Mode.bat`**. Press **Y** to confirm.
 
 **By hand:** delete these from the game folder:
 
@@ -97,7 +99,7 @@ Either way, the game is back to normal and plays in VR again. Your saves are not
 ## Questions
 
 **Nothing changed, the game still wants VR.**
-The files ended up in the wrong place. `winhttp.dll` must sit right next to `RealVrFishing.exe`, not inside a folder like `RealVRFishingPCMode-v0.6.2`. Move the files up one level.
+The files ended up in the wrong place. `winhttp.dll` must sit right next to `RealVrFishing.exe`, not inside a folder like `RealVRFishingPCMode-v0.6.3`. Move the files up one level.
 
 **My antivirus flagged `winhttp.dll`.**
 That file is the BepInEx mod loader, which many Unity game mods use. It is open source ([Unity Doorstop](https://github.com/NeighTools/UnityDoorstop)) and gets flagged because it loads into the game. Allow it, or download BepInEx yourself from its [official page](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5) to compare.
@@ -120,6 +122,7 @@ After the first start, the settings file is at `BepInEx\config\com.finalpantasy.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
+| `DisableVR` | true | Set to `false` to play in your VR headset again (the mod switches itself off) |
 | `MouseSensitivity` | 0.12 | Degrees of turn per pixel of mouse movement |
 | `FieldOfView` | 75 | How wide you see, in degrees |
 | `ZoomFieldOfView` | 30 | How wide you see while holding Z |
@@ -143,6 +146,10 @@ To build, install the .NET SDK and BepInEx into your game folder once, then run:
 ```
 
 The release zip is written to `out\`.
+
+## Support
+
+This is a free hobby project. If you enjoy it and want to help keep it going, you can [buy me a coffee on Ko-fi](https://ko-fi.com/finalpantasy). Thank you!
 
 ## License
 

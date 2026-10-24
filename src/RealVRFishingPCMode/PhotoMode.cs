@@ -42,7 +42,7 @@ namespace RealVRFishingPCMode
         static readonly List<Canvas> hiddenCanvases = new List<Canvas>();
         static readonly List<Renderer> hiddenRenderers = new List<Renderer>();
         static readonly Dictionary<int, bool> prevKeys = new Dictionary<int, bool>();
-        static float nextCanvasScan, nextFind, savedUntil;
+        static float nextCanvasScan, nextHandScan, nextFind, savedUntil;
         static int shotFrame = -10;
         static string savedName;
         static Main main;
@@ -59,8 +59,18 @@ namespace RealVRFishingPCMode
             return down && !was;
         }
 
+        static int sceneHandle = -1;
+
         public static void Tick(Driver d, bool focused, Quaternion yawRot)
         {
+            // a new scene starts outside photo mode, with the old scene's hidden things forgotten
+            int scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().handle;
+            if (scene != sceneHandle)
+            {
+                sceneHandle = scene;
+                if (On) Toggle(d);
+                main = null;
+            }
             FindFish();
             if (Pressed(focused, 'P')) Toggle(d);
 
@@ -78,8 +88,7 @@ namespace RealVRFishingPCMode
             if (Pressed(focused, 'B')) { showBoard = !showBoard; if (!showBoard) RestoreBoard(); }
             if (focused && Win.Down(VK_HOME)) { CamOffset = Vector3.zero; Fov = 0f; }
 
-            float wheel = 0f;
-            wheel = Win.Wheel();
+            float wheel = focused ? Win.Wheel() : 0f;
             if (wheel != 0f)
             {
                 if (focused && Win.Down(VK_MBUTTON) && fish != null) holdDistance = Mathf.Clamp(holdDistance - wheel * 0.05f, 0.35f, 2.5f);
@@ -105,7 +114,12 @@ namespace RealVRFishingPCMode
             {
                 nextCanvasScan = Time.unscaledTime + 0.5f;
                 HideCanvases();
-                if (hideHands) HideHands(d, true);
+                if (hideHands)
+                {
+                    // the game turns hands back on now and then: re-hide what was found, and look for new ones less often
+                    if (Time.unscaledTime >= nextHandScan) HideHands(d, true);
+                    else foreach (var r in hiddenRenderers) if (r != null && r.enabled) r.enabled = false;
+                }
             }
             if (!holdFish || fish == null) RestoreBait();
         }
@@ -283,6 +297,7 @@ namespace RealVRFishingPCMode
                 hiddenRenderers.Clear();
                 return;
             }
+            nextHandScan = Time.unscaledTime + 3f;
             var keep = new List<Transform>();
             if (fish != null) keep.Add(fish.transform);
             if (main != null && main.baitController != null) keep.Add(main.baitController.transform);

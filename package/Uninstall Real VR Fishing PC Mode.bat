@@ -11,6 +11,13 @@ if not exist "RealVrFishing.exe" (
     exit /b 1
 )
 
+tasklist /fi "imagename eq RealVrFishing.exe" | find /i "RealVrFishing.exe" >nul
+if not errorlevel 1 (
+    echo Real VR Fishing is still running. Close the game first, then run this again.
+    pause
+    exit /b 1
+)
+
 echo This removes Real VR Fishing PC Mode, so the game runs in VR again.
 echo Your saves and the game itself are not touched.
 echo.
@@ -27,13 +34,22 @@ rem BepInEx (the mod loader) goes too, unless other mods still use it
 set "other="
 if exist "BepInEx\plugins" for /r "BepInEx\plugins" %%f in (*.dll) do set "other=1"
 if exist "BepInEx\patchers" for /r "BepInEx\patchers" %%f in (*.dll) do set "other=1"
+if exist "BepInEx\monomod" for /r "BepInEx\monomod" %%f in (*.dll) do set "other=1"
 if defined other (
     echo Other BepInEx mods were found, so the BepInEx mod loader stays installed.
 ) else (
     rmdir /s /q "BepInEx" 2>nul
-    del /q "winhttp.dll" "doorstop_config.ini" ".doorstop_version" "changelog.txt" 2>nul
+    del /q "winhttp.dll" "doorstop_config.ini" ".doorstop_version" 2>nul
+    rem changelog.txt came with BepInEx; leave it if it is some other file
+    if exist "changelog.txt" findstr /c:"Changelog (excluding merges)" "changelog.txt" >nul && del /q "changelog.txt"
 )
 
+if exist "BepInEx\plugins\RealVRFishingPCMode.dll" (
+    echo.
+    echo Some files could not be removed. Close the game and run this again.
+    pause
+    exit /b 1
+)
 echo.
 echo Done. Real VR Fishing PC Mode is removed.
 pause

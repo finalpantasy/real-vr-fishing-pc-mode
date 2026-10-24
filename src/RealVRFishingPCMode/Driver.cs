@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using HarmonyLib;
@@ -93,28 +94,53 @@ namespace RealVRFishingPCMode
         public FakeController Main => MainSide == HAND_SIDE.RIGHT ? Right : Left;
         public FakeController Off => MainSide == HAND_SIDE.RIGHT ? Left : Right;
 
+        static readonly FieldInfo bySideField = AccessTools.Field(typeof(InputUtility), "m_ControllerStateBySide"),
+            statesField = AccessTools.Field(typeof(InputUtility), "m_ControllerStates"),
+            hapticsField = AccessTools.Field(typeof(InputUtility), "m_HapticDevicesBySide"),
+            trackingField = AccessTools.Field(typeof(InputUtility), "m_InputTrackingState");
+        bool installFailed;
+
         void InstallDevices()
         {
-            var t = typeof(InputUtility);
-            var bySide = (Dictionary<HAND_SIDE, IControllerState>)AccessTools.Field(t, "m_ControllerStateBySide").GetValue(null);
+            var bySide = (Dictionary<HAND_SIDE, IControllerState>)bySideField.GetValue(null);
             if (bySide.TryGetValue(HAND_SIDE.RIGHT, out var cur) && cur == Right) return;
-            var list = (List<ControllerState>)AccessTools.Field(t, "m_ControllerStates").GetValue(null);
-            var haptics = (Dictionary<HAND_SIDE, IHapticDevice>)AccessTools.Field(t, "m_HapticDevicesBySide").GetValue(null);
+            var list = (List<ControllerState>)statesField.GetValue(null);
+            var haptics = (Dictionary<HAND_SIDE, IHapticDevice>)hapticsField.GetValue(null);
             bySide.Clear(); list.Clear(); haptics.Clear();
             bySide[HAND_SIDE.LEFT] = Left; bySide[HAND_SIDE.RIGHT] = Right;
             list.Add(Left); list.Add(Right);
             haptics[HAND_SIDE.LEFT] = new FakeHaptics(HAND_SIDE.LEFT);
             haptics[HAND_SIDE.RIGHT] = new FakeHaptics(HAND_SIDE.RIGHT);
-            AccessTools.Field(t, "m_InputTrackingState").SetValue(null, Tracking);
+            trackingField.SetValue(null, Tracking);
             Plugin.Log.LogInfo("fake controllers installed");
+        }
+
+        // scene objects the driver reads often, looked up at most once a second
+        DataManager dataManager;
+        Main stageMain;
+        VRPlayerController player;
+        float nextLookup;
+
+        void LookUp()
+        {
+            if (Time.unscaledTime < nextLookup) return;
+            nextLookup = Time.unscaledTime + 1f;
+            if (dataManager == null) dataManager = UnityEngine.Object.FindFirstObjectByType<DataManager>();
+            if (stageMain == null) stageMain = UnityEngine.Object.FindFirstObjectByType<Main>();
+            if (player == null) player = UnityEngine.Object.FindFirstObjectByType<VRPlayerController>();
         }
 
         void Update()
         {
-            try { InstallDevices(); }
-            catch (Exception e) { Plugin.Log.LogError("install devices: " + e.Message); }
+            if (!installFailed)
+            {
+                try { InstallDevices(); }
+                catch (Exception e) { installFailed = true; Plugin.Log.LogError("install devices: " + e); }
+            }
+            LookUp();
 
-            if (Time.unscaledTime >= nextScan || head == null) FindRig();
+            // while the rig is missing (loading), look for it often but not every frame
+            if (Time.unscaledTime >= nextScan || (head == null && Time.frameCount % 15 == 0)) FindRig();
 
             var hwnd = Win.GameWindow();
             focused = Win.Scripted || hwnd != IntPtr.Zero;
@@ -219,8 +245,8 @@ namespace RealVRFishingPCMode
             m.Secondary = on && Win.Down('R');
             m.StickClick = false;
             m.Menu = false;
-            float wheel = 0f;
-            wheel = Win.Wheel();
+            // Windows sends the wheel to the window under the cursor even when another app has focus
+            float wheel = on ? Win.Wheel() : 0f;
             if (wheel != 0f) wheelPulse = Mathf.Sign(wheel) * 0.15f;
             float wy = wheelPulse > 0f ? 1f : wheelPulse < 0f ? -1f : 0f;
             wheelPulse = Mathf.MoveTowards(wheelPulse, 0f, Time.unscaledDeltaTime);
@@ -237,12 +263,11 @@ namespace RealVRFishingPCMode
             o.Stick = Vector2.zero;
         }
 
-        static bool MainIsRight()
+        bool MainIsRight()
         {
             try
             {
-                var dm = UnityEngine.Object.FindFirstObjectByType<DataManager>();
-                if (dm != null && dm.userData != null) return dm.userData.rightHand;
+                if (dataManager != null && dataManager.userData != null) return dataManager.userData.rightHand;
             }
             catch { }
             return true;
@@ -380,8 +405,15 @@ namespace RealVRFishingPCMode
             float f =(Win.Down('W') ? 1f : 0f) - (Win.Down('S') ? 1f : 0f);
             float s = (Win.Down('D') ? 1f : 0f) - (Win.Down('A') ? 1f : 0f);
             if (f == 0f && s == 0f) return;
-            var player = UnityEngine.Object.FindFirstObjectByType<VRPlayerController>();
             if (player == null || !player.isActiveAndEnabled) return;
+            // A / D also swing the rod: once a line is out, they must not move you
+            try
+            {
+                var fc = stageMain != null ? stageMain.fishingController : null;
+                if (fc != null && fc.gameState != FISHINGSTATE.READY) return;
+            }
+            catch { }
+            if (Charging) return;
             var fwd = head.forward; fwd.y = 0f; fwd.Normalize();
             var right = head.right; right.y = 0f; right.Normalize();
             float speed = Plugin.WalkSpeed.Value * (Win.Down(VK_SHIFT) ? 2f : 1f);

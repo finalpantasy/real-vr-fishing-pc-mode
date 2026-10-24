@@ -8,7 +8,8 @@ $bepVersion = "5.4.23.5"
 $bepZip = Join-Path $root "out\cache\BepInEx_win_x64_$bepVersion.zip"
 
 foreach ($p in "RealVRFishingPCMode", "RealVRFishingPCMode.Patcher") {
-    dotnet build "$root\src\$p\$p.csproj" -c Release -p:GameDir="$GameDir" -nologo -v q
+    # Windows PowerShell treats compiler warnings on stderr as errors under 'Stop', so build through cmd
+    cmd /c "dotnet build `"$root\src\$p\$p.csproj`" -c Release `"-p:GameDir=$GameDir`" -nologo -v q -clp:ErrorsOnly 2>&1"
     if ($LASTEXITCODE) { throw "build of $p failed" }
 }
 $version = (Select-String -Path "$root\src\RealVRFishingPCMode\Plugin.cs" -Pattern 'Version = "([^"]+)"').Matches[0].Groups[1].Value

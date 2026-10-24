@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using BepInEx;
 using BepInEx.Configuration;
@@ -13,7 +13,7 @@ namespace RealVRFishingPCMode
     {
         public const string Guid = "com.finalpantasy.realvrfishing.pcmode";
         public const string Name = "Real VR Fishing PC Mode";
-        public const string Version = "0.6.2";
+        public const string Version = "0.6.3";
 
         internal static ManualLogSource Log;
         internal static ConfigEntry<bool> DisableVR, ClickToCast, OneHanded, AllowOnlineCasting, SharpenScenery;
@@ -25,7 +25,7 @@ namespace RealVRFishingPCMode
         void Awake()
         {
             Log = Logger;
-            DisableVR = Config.Bind("General", "DisableVR", true, "Start the game without any VR runtime, so it draws to the monitor.");
+            DisableVR = Config.Bind("General", "DisableVR", true, "true: play on the monitor with mouse and keyboard. false: play in your VR headset as normal (the mod switches itself off).");
             ClickToCast = Config.Bind("Fishing", "ClickToCast", true, "Cast with the mouse instead of the game's swing detection.");
             CastMode = Config.Bind("Fishing", "CastMode", "PowerBar", new ConfigDescription(
                 "PowerBar: hold left-click to wind up, release to cast that far toward the crosshair. ClickSpot: click a spot on the water.",
@@ -46,11 +46,14 @@ namespace RealVRFishingPCMode
             FieldOfView = Config.Bind("View", "FieldOfView", 75f, "Vertical field of view in degrees.");
             WalkSpeed = Config.Bind("Movement", "WalkSpeed", 2.0f, "Walking speed in the lodge, meters per second.");
 
-            if (DisableVR.Value)
+            if (!DisableVR.Value)
             {
-                // the OpenXR loader reads this when the game starts XR; a missing file means no runtime, so no SteamVR
-                Environment.SetEnvironmentVariable("XR_RUNTIME_JSON", Path.Combine(Paths.PluginPath, "no-vr-runtime.json"));
+                // the patcher reads the same setting and leaves VR alone; play in the headset with the mod idle
+                Log.LogInfo($"{Name} {Version}: DisableVR is false, so VR stays on and the mod does nothing");
+                return;
             }
+            // the OpenXR loader reads this when the game starts XR; a missing file means no runtime, so no SteamVR
+            Environment.SetEnvironmentVariable("XR_RUNTIME_JSON", Path.Combine(Paths.PluginPath, "no-vr-runtime.json"));
 
             var harmony = new Harmony(Guid);
             foreach (var type in typeof(Plugin).Assembly.GetTypes())

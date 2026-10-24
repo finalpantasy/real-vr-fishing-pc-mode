@@ -91,10 +91,20 @@ namespace RealVRFishingPCMode
             if (IsOnline() && !Plugin.AllowOnlineCasting.Value) return true;
             float now = Time.time;
 
+            if (PhotoMode.On)
+            {
+                // photo mode lets go of the mouse: that must not throw a cast that was winding up
+                if (d.Charging) { d.Charging = false; d.CastCancelled = true; d.CastAnimAt = now; }
+                pending = false;
+                return false;
+            }
+
             if (pending)
             {
                 if (now - pendingAt < pendingDelay) return false;
                 pending = false;
+                // a cast held up by a menu or a scene change is stale; drop it
+                if (now - pendingAt > 1f) return false;
                 try { Cast(__instance, pendingRay, pendingPower); }
                 catch (Exception e) { Plugin.Log.LogError("cast failed: " + e); }
                 return false;
