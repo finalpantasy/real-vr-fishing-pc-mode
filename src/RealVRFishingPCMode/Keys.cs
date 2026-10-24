@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 namespace RealVRFishingPCMode
 {
     // Every key the mod reads, stored by name in the config's [Keys] section and changeable in the F10 panel.
+    // Each one can also have a controller button, kept in the [Controller] section.
     // F9 (diagnostics), F10 (settings) and Esc stay fixed, so a bad binding can always be undone.
     static class Keys
     {
@@ -11,8 +12,9 @@ namespace RealVRFishingPCMode
         {
             public string Label;
             public int Default, Vk;
-            public ConfigEntry<string> Entry;
-            public bool Down => Win.Down(Vk);
+            public ConfigEntry<string> Entry, PadEntry;
+            public Pad.Button PadDefault, PadButton;
+            public bool Down => Win.Down(Vk) || Pad.Down(PadButton);
             public string Name => Keys.Display(Vk);
         }
 
@@ -28,40 +30,43 @@ namespace RealVRFishingPCMode
 
         public static void Init(ConfigFile cfg)
         {
-            Reel = Add(cfg, "Reel", "Cast, reel, click menus", 0x01);
-            Hook = Add(cfg, "Hook", "Set the hook, twitch, land the fish", 0x02);
-            SlowReel = Add(cfg, "SlowReel", "Hold for slow reeling", 0x11);
-            Left = Add(cfg, "Left", "Walk left, swing the rod left", 'A');
-            Right = Add(cfg, "Right", "Walk right, swing the rod right", 'D');
-            Forward = Add(cfg, "Forward", "Walk forward", 'W');
-            Back = Add(cfg, "Back", "Walk back", 'S');
-            Run = Add(cfg, "Run", "Hold to run", 0x10);
-            Zoom = Add(cfg, "Zoom", "Hold to zoom", 'Z');
-            FreeCursor = Add(cfg, "FreeCursor", "Hold to free the mouse cursor", 0xA4);
-            Menu = Add(cfg, "Menu", "Game menu", 0x09);
-            Grab = Add(cfg, "Grab", "Grab (rod hand grip)", 'F');
-            ButtonA = Add(cfg, "ButtonA", "Controller A button", 'E');
-            ButtonB = Add(cfg, "ButtonB", "Controller B button", 'R');
-            ButtonX = Add(cfg, "ButtonX", "Controller X button", 'Q');
-            ButtonY = Add(cfg, "ButtonY", "Controller Y button", 'G');
-            OffTrigger = Add(cfg, "OffHandTrigger", "Other hand trigger", 'C');
-            OffGrip = Add(cfg, "OffHandGrip", "Other hand grip", 'V');
-            StickUp = Add(cfg, "StickUp", "Stick up (lure depth, bait)", 0x26);
-            StickDown = Add(cfg, "StickDown", "Stick down", 0x28);
-            StickLeft = Add(cfg, "StickLeft", "Stick left, spin a landed fish", 0x25);
-            StickRight = Add(cfg, "StickRight", "Stick right, spin a landed fish", 0x27);
-            Taller = Add(cfg, "Taller", "Make yourself taller", 0x21);
-            Shorter = Add(cfg, "Shorter", "Make yourself shorter", 0x22);
-            ResetView = Add(cfg, "ResetView", "Reset the view", 0x24);
-            Help = Add(cfg, "Help", "Show or hide the controls list", 0x70);
-            Photo = Add(cfg, "PhotoMode", "Photo mode", 'P');
+            Reel = Add(cfg, "Reel", "Cast, reel, click menus", 0x01, Pad.Button.RT);
+            Hook = Add(cfg, "Hook", "Set the hook, twitch, land the fish", 0x02, Pad.Button.LT);
+            SlowReel = Add(cfg, "SlowReel", "Hold for slow reeling", 0x11, Pad.Button.None);
+            Left = Add(cfg, "Left", "Walk left, swing the rod left", 'A', Pad.Button.LStickLeft);
+            Right = Add(cfg, "Right", "Walk right, swing the rod right", 'D', Pad.Button.LStickRight);
+            Forward = Add(cfg, "Forward", "Walk forward", 'W', Pad.Button.LStickUp);
+            Back = Add(cfg, "Back", "Walk back", 'S', Pad.Button.LStickDown);
+            Run = Add(cfg, "Run", "Hold to run", 0x10, Pad.Button.LS);
+            Zoom = Add(cfg, "Zoom", "Hold to zoom", 'Z', Pad.Button.LB);
+            FreeCursor = Add(cfg, "FreeCursor", "Hold to free the mouse cursor", 0xA4, Pad.Button.None);
+            Menu = Add(cfg, "Menu", "Game menu", 0x09, Pad.Button.Menu);
+            Grab = Add(cfg, "Grab", "Grab (rod hand grip)", 'F', Pad.Button.RB);
+            ButtonA = Add(cfg, "ButtonA", "VR controller A button", 'E', Pad.Button.A);
+            ButtonB = Add(cfg, "ButtonB", "VR controller B button", 'R', Pad.Button.B);
+            ButtonX = Add(cfg, "ButtonX", "VR controller X button", 'Q', Pad.Button.X);
+            ButtonY = Add(cfg, "ButtonY", "VR controller Y button", 'G', Pad.Button.Y);
+            OffTrigger = Add(cfg, "OffHandTrigger", "Other hand trigger", 'C', Pad.Button.None);
+            OffGrip = Add(cfg, "OffHandGrip", "Other hand grip", 'V', Pad.Button.None);
+            StickUp = Add(cfg, "StickUp", "Stick up (lure depth, bait)", 0x26, Pad.Button.DpadUp);
+            StickDown = Add(cfg, "StickDown", "Stick down", 0x28, Pad.Button.DpadDown);
+            StickLeft = Add(cfg, "StickLeft", "Stick left, spin a landed fish", 0x25, Pad.Button.DpadLeft);
+            StickRight = Add(cfg, "StickRight", "Stick right, spin a landed fish", 0x27, Pad.Button.DpadRight);
+            Taller = Add(cfg, "Taller", "Make yourself taller", 0x21, Pad.Button.None);
+            Shorter = Add(cfg, "Shorter", "Make yourself shorter", 0x22, Pad.Button.None);
+            ResetView = Add(cfg, "ResetView", "Reset the view", 0x24, Pad.Button.RS);
+            Help = Add(cfg, "Help", "Show or hide the controls list", 0x70, Pad.Button.View);
+            Photo = Add(cfg, "PhotoMode", "Photo mode", 'P', Pad.Button.None);
         }
 
-        static Bind Add(ConfigFile cfg, string key, string label, int vk)
+        static Bind Add(ConfigFile cfg, string key, string label, int vk, Pad.Button pad)
         {
-            var b = new Bind { Label = label, Default = vk };
+            var b = new Bind { Label = label, Default = vk, PadDefault = pad };
             b.Entry = cfg.Bind("Keys", key, ConfigName(vk), label + ". A key name like Z, F1, Space, LeftMouse, PageUp or Num5.");
             b.Vk = Parse(b.Entry.Value, vk);
+            b.PadEntry = cfg.Bind("Controller", key, Pad.ConfigName(pad), label + ". A, B, X, Y, LB, RB, LT, RT, View, Menu, LS, RS, "
+                + "DpadUp/Down/Left/Right, LStickUp/Down/Left/Right or None (Xbox names; Cross is A, Circle B, Square X, Triangle Y, L1 LB, R2 RT).");
+            b.PadButton = Pad.Parse(b.PadEntry.Value, pad);
             All.Add(b);
             return b;
         }
@@ -76,6 +81,18 @@ namespace RealVRFishingPCMode
         public static void ResetAll()
         {
             foreach (var b in All) Set(b, b.Default);
+        }
+
+        public static void SetPad(Bind b, Pad.Button button)
+        {
+            b.PadButton = button;
+            b.PadEntry.Value = Pad.ConfigName(button);
+            Version++;
+        }
+
+        public static void ResetPad()
+        {
+            foreach (var b in All) SetPad(b, b.PadDefault);
         }
 
         // config name, shown name
@@ -123,12 +140,13 @@ namespace RealVRFishingPCMode
             return fallback;
         }
 
-        // the other actions on the same key, for the panel's warning
-        public static string Clash(Bind b)
+        // the other actions on the same key (or controller button), for the panel's warning
+        public static string Clash(Bind b, bool pad = false)
         {
+            if (pad && b.PadButton == Pad.Button.None) return null;
             string s = null;
             foreach (var o in All)
-                if (o != b && o.Vk == b.Vk) s = s == null ? o.Label : s + ", " + o.Label;
+                if (o != b && (pad ? o.PadButton == b.PadButton : o.Vk == b.Vk)) s = s == null ? o.Label : s + ", " + o.Label;
             return s;
         }
     }

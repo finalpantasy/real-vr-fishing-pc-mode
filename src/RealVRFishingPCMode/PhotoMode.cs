@@ -385,16 +385,67 @@ namespace RealVRFishingPCMode
             catch (Exception e) { Plugin.Log.LogError("photo failed: " + e.Message); }
         }
 
-        public static void Draw(float scale, GUIStyle style, bool showHelp)
+        public static void Draw(bool showHelp)
         {
             if (Capturing) return;
             if (Time.unscaledTime < savedUntil)
-                GUI.Label(new Rect(20 * scale, 20 * scale, 1200 * scale, 30 * scale), "Saved to Pictures\\RealVRFishing\\" + savedName, style);
+            {
+                string text = "<color=#45C7DB><b>Saved</b></color>   Pictures\\RealVRFishing\\" + savedName;
+                var st = Ui.Style(15, false, TextAnchor.MiddleCenter);
+                float pw = Ui.Width(text, st) + Ui.S(32f);
+                var pill = new Rect((Screen.width - pw) / 2f, Ui.S(24f), pw, Ui.S(38f));
+                Ui.Panel(pill, Ui.Card, 19f);
+                Ui.Label(pill, text, st, Ui.Text);
+            }
             if (!showHelp) return;
-            GUI.Label(new Rect(20 * scale, Screen.height - 60 * scale, Screen.width - 40 * scale, 50 * scale),
-                "<b>Photo mode</b>  Enter: save   " + Keys.Forward.Name + Keys.Left.Name + Keys.Back.Name + Keys.Right.Name + ": move   E / Q: up / down   Wheel: zoom   Home: reset   H: hide hands, rod, line and float   B: catch board" +
-                (fish != null ? "   Hold middle mouse: turn the fish (with wheel: nearer / farther)   F: " + (holdFish ? "put the fish back" : "hold the fish up") : "") +
-                "   " + Keys.Photo.Name + ": exit   " + Keys.Help.Name + ": hide this", style);
+
+            // one card along the bottom; the items wrap onto a second line on narrow screens
+            var items = new List<KeyValuePair<string[], string>>
+            {
+                Item("Save picture", "Enter"),
+                Item("Move", Ui.Key(Keys.Forward), Ui.Key(Keys.Left), Ui.Key(Keys.Back), Ui.Key(Keys.Right)),
+                Item("Up, down", "E", "Q"),
+                Item("Zoom", "Wheel"),
+                Item("Hide hands", "H"),
+                Item("Catch card", "B"),
+            };
+            if (fish != null)
+            {
+                items.Add(Item("Turn fish", "Middle mouse"));
+                items.Add(Item(holdFish ? "Put fish back" : "Hold fish up", "F"));
+            }
+            items.Add(Item("Reset", "Home"));
+            items.Add(Item("Exit", Ui.Key(Keys.Photo)));
+
+            const float chip = 24f;
+            float pad = Ui.S(16f), spacing = Ui.S(22f), lineH = Ui.S(32f), maxW = Screen.width - Ui.S(80f);
+            var titleStyle = Ui.Style(13, true);
+            float titleW = Ui.Width("PHOTO MODE", titleStyle) + spacing;
+            var lines = new List<List<int>> { new List<int>() };
+            var widths = new List<float> { titleW };
+            var itemW = new float[items.Count];
+            for (int i = 0; i < items.Count; i++)
+            {
+                itemW[i] = Ui.KeyLine(0f, 0f, items[i].Key, items[i].Value, chip, 14, true);
+                int l = lines.Count - 1;
+                if (lines[l].Count > 0 && widths[l] + itemW[i] > maxW - 2f * pad) { lines.Add(new List<int>()); widths.Add(0f); l++; }
+                lines[l].Add(i);
+                widths[l] += itemW[i] + spacing;
+            }
+            float w = 0f;
+            foreach (var lw in widths) w = Mathf.Max(w, lw - spacing);
+            w += 2f * pad;
+            float h = 2f * pad + lines.Count * lineH - Ui.S(8f);
+            var card = new Rect((Screen.width - w) / 2f, Screen.height - h - Ui.S(24f), w, h);
+            Ui.Panel(card, Ui.Card, 14f);
+            for (int l = 0; l < lines.Count; l++)
+            {
+                float x = card.x + pad, y = card.y + pad + l * lineH;
+                if (l == 0) { Ui.Label(new Rect(x, y, titleW, Ui.S(chip)), "PHOTO MODE", titleStyle, Ui.Accent); x += titleW; }
+                foreach (int i in lines[l]) { Ui.KeyLine(x, y, items[i].Key, items[i].Value, chip, 14); x += itemW[i] + spacing; }
+            }
         }
+
+        static KeyValuePair<string[], string> Item(string text, params string[] keys) => new KeyValuePair<string[], string>(keys, text);
     }
 }

@@ -13,11 +13,11 @@ namespace RealVRFishingPCMode
     {
         public const string Guid = "com.finalpantasy.realvrfishing.pcmode";
         public const string Name = "Real VR Fishing PC Mode";
-        public const string Version = "0.7.0";
+        public const string Version = "0.8.0";
 
         internal static ManualLogSource Log;
         internal static ConfigFile Cfg;
-        internal static ConfigEntry<bool> DisableVR, ClickToCast, OneHanded, AllowOnlineCasting, SharpenScenery;
+        internal static ConfigEntry<bool> DisableVR, ClickToCast, OneHanded, AllowOnlineCasting, SharpenScenery, ShowTips;
         internal static ConfigEntry<float> HeadHeight, MouseSensitivity, FieldOfView, ZoomFieldOfView, WalkSpeed, RodLift,
             HandRight, HandUp, HandForward, PowerFillSeconds, RodFollowLook, LodBias;
         internal static ConfigEntry<string> CastMode;
@@ -31,7 +31,9 @@ namespace RealVRFishingPCMode
             CastMode = Config.Bind("Fishing", "CastMode", "PowerBar", new ConfigDescription(
                 "PowerBar: hold left-click to wind up, release to cast that far toward the crosshair. ClickSpot: click a spot on the water.",
                 new AcceptableValueList<string>("PowerBar", "ClickSpot")));
-            PowerFillSeconds = Config.Bind("Fishing", "PowerFillSeconds", 1.1f, "Seconds for the power bar to fill (it then drains and refills while held).");
+            PowerFillSeconds = Config.Bind("Fishing", "PowerFillSeconds", SettingsPanel.BaseFillSeconds, "Seconds for the power bar to fill (it then drains and refills while held). F10 shows it as Power bar speed: 100% is 1.375 s.");
+            // 0.7.1 made the bar 20% slower; a file still holding the old default moves to the new one
+            if (Mathf.Approximately(PowerFillSeconds.Value, 1.1f)) PowerFillSeconds.Value = SettingsPanel.BaseFillSeconds;
             AllowOnlineCasting = Config.Bind("Fishing", "AllowOnlineCasting", false, "Allow click-to-cast in online multiplayer rooms.");
             OneHanded = Config.Bind("Fishing", "OneHanded", true, "Force one-handed mode, so holding the trigger reels.");
             RodLift = Config.Bind("Fishing", "RodLift", 70f, "Degrees the rod tip points above level while you look straight ahead.");
@@ -46,6 +48,8 @@ namespace RealVRFishingPCMode
             MouseSensitivity = Config.Bind("View", "MouseSensitivity", 0.12f, "Degrees of turn per pixel of mouse movement.");
             FieldOfView = Config.Bind("View", "FieldOfView", 75f, "Vertical field of view in degrees.");
             WalkSpeed = Config.Bind("Movement", "WalkSpeed", 2.0f, "Walking speed in the lodge, meters per second.");
+            ShowTips = Config.Bind("General", "ShowTips", true, "Show the three-step tips card when the game starts. It turns itself off once closed.");
+            Pad.Init(Config);
             Keys.Init(Config);
             // the F10 panel changes values every frame while a slider is dragged; it saves once when it closes
             Cfg = Config;
