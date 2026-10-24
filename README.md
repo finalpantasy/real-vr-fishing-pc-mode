@@ -8,7 +8,7 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 
 [**Download the latest version**](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest)
 
-![Photo mode: a spotted barbel held up over the Han River with the Seoul skyline behind it, and the photo mode keys along the bottom](docs/images/photo-mode.jpg)
+![Photo mode: a spotted barbel held up over the Han River with the Seoul skyline behind it, and the photo mode keys along the bottom](docs/images/photo-mode-barbel.jpg)
 
 ## What you get
 
@@ -25,9 +25,9 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 
 | Power-bar casting | A fish jumps on the line |
 | --- | --- |
-| ![Holding left-click fills the power bar next to the crosshair, with the stats corner at the top right](docs/images/power-cast.jpg) | ![A fish leaps out of the Han River while the rod bends](docs/images/fish-jump.jpg) |
+| ![Holding left-click fills the power bar next to the crosshair, with the stats corner at the top right](docs/images/cast-power-bar.jpg) | ![A fish leaps out of the Han River while the rod bends](docs/images/fish-jump.jpg) |
 | **Landing the catch** | **Keep it for credits** |
-| ![A spotted barbel swung out of the water on the line](docs/images/landing.jpg) | ![The kept fish drops away while +28 credits floats up](docs/images/keep.jpg) |
+| ![A spotted barbel swung out of the water on the line](docs/images/landing-barbel.jpg) | ![The kept fish drops away while +28 credits floats up](docs/images/keep.jpg) |
 
 ![The full-screen catch screen: a live largemouth bass at 4.433 lb, on a scale from the smallest to the biggest of its kind with your best marked, your stats, and Keep for 43 credits or Release for 9 XP](docs/images/catch-screen.jpg)
 
