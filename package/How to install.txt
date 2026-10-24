@@ -1,0 +1,15 @@
+Real VR Fishing PC Mode - play Real VR Fishing on your monitor with mouse and keyboard, no VR headset.
+
+INSTALL
+1. In Steam, right-click Real VR Fishing, then Manage, then Browse local files.
+   A folder opens with RealVrFishing.exe in it. That is the game folder.
+2. Copy everything from this zip into that game folder.
+   winhttp.dll must end up right next to RealVrFishing.exe (not in a subfolder).
+3. Start the game from Steam as usual. The first start takes a little longer.
+   A list of controls shows at the top-left. F1 hides it.
+
+UNINSTALL
+Double-click "Uninstall Real VR Fishing PC Mode.bat" in the game folder.
+Or delete these by hand: winhttp.dll, doorstop_config.ini, .doorstop_version, changelog.txt and the BepInEx folder.
+
+Help, controls and updates: https://github.com/finalpantasy/real-vr-fishing-pc-mode

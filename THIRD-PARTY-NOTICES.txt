@@ -1,0 +1,13 @@
+Real VR Fishing PC Mode is MIT licensed (see LICENSE). The release zip also contains the
+unmodified BepInEx 5.4.23.5 mod loader, which is distributed under its own licenses:
+
+- BepInEx (BepInEx\core\BepInEx*.dll) - LGPL-2.1 - https://github.com/BepInEx/BepInEx
+- Unity Doorstop (winhttp.dll, doorstop_config.ini) - LGPL-2.1 - https://github.com/NeighTools/UnityDoorstop
+- HarmonyX (0Harmony*.dll) - MIT - https://github.com/BepInEx/HarmonyX
+- MonoMod (MonoMod.*.dll) - MIT - https://github.com/MonoMod/MonoMod
+- Mono.Cecil (Mono.Cecil*.dll) - MIT - https://github.com/jbevain/cecil
+
+Source for all of these is at the links above.
+
+Real VR Fishing is a trademark of its owners. This project is unofficial, is not affiliated with or
+endorsed by the game's developer or publisher, and contains no game files.
