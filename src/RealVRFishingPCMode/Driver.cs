@@ -53,9 +53,6 @@ namespace RealVRFishingPCMode
     {
         public static Driver I;
 
-        const int VK_LBUTTON = 0x01, VK_RBUTTON = 0x02, VK_TAB = 0x09, VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_LALT = 0xA4,
-            VK_HOME = 0x24, VK_LEFT = 0x25, VK_UP = 0x26, VK_RIGHT = 0x27, VK_DOWN = 0x28, VK_PRIOR = 0x21, VK_NEXT = 0x22, VK_F1 = 0x70, VK_F9 = 0x78;
-
         public FakeController Left, Right;
         public FakeTracking Tracking;
         public HAND_SIDE MainSide = HAND_SIDE.RIGHT;
@@ -144,11 +141,14 @@ namespace RealVRFishingPCMode
 
             var hwnd = Win.GameWindow();
             focused = Win.Scripted || hwnd != IntPtr.Zero;
-            bool freeCursor = focused && Win.Down(VK_LALT);
-            try { PhotoMode.Tick(this, focused, Quaternion.Euler(0f, yaw, 0f)); }
+            SettingsPanel.Tick(focused);
+            // the settings panel has the mouse and keyboard while it is open
+            bool input = focused && !SettingsPanel.Open;
+            bool freeCursor = input && Keys.FreeCursor.Down;
+            try { PhotoMode.Tick(this, input, Quaternion.Euler(0f, yaw, 0f)); }
             catch (Exception e) { Plugin.Log.LogError("photo mode: " + e.Message); }
-            ReadMouse(hwnd, freeCursor);
-            ReadButtons();
+            ReadMouse(hwnd, freeCursor || SettingsPanel.Open);
+            ReadButtons(input);
             ComputePoses(freeCursor, hwnd);
             ApplyPoses();
             Diag.AfterApply();
@@ -156,11 +156,13 @@ namespace RealVRFishingPCMode
             Tracking.Update(Time.deltaTime);
             Left.Update();
             Right.Update();
-            Walk();
+            Walk(input);
             KeepOneHanded();
             // a scripted wheel notch counts for one frame
             if (Win.Scripted) Win.VirtualWheel = 0f;
         }
+
+        void OnApplicationQuit() => SettingsPanel.Save();
 
         void LateUpdate()
         {
@@ -200,20 +202,19 @@ namespace RealVRFishingPCMode
             wasLocked = true;
         }
 
-        void ReadButtons()
+        void ReadButtons(bool on)
         {
             MainSide = MainIsRight() ? HAND_SIDE.RIGHT : HAND_SIDE.LEFT;
             var m = Main; var o = Off;
-            bool on = focused;
-            bool f1 = on && Win.Down(VK_F1);
+            bool f1 = on && Keys.Help.Down;
             if (f1 && !prevF1) showHelp = !showHelp;
             prevF1 = f1;
-            bool f9 = on && Win.Down(VK_F9);
+            bool f9 = on && Win.Down(Keys.F9);
             if (f9 && !prevF9) Diag.Toggle();
             prevF9 = f9;
-            if (PhotoMode.On)
+            if (PhotoMode.On || SettingsPanel.Open)
             {
-                // photo mode owns the keyboard; the game sees both controllers at rest
+                // photo mode or the settings panel owns the keyboard; the game sees both controllers at rest
                 foreach (var h in new[] { m, o })
                 {
                     h.Trigger = h.Grip = h.Primary = h.Secondary = h.Menu = h.StickClick = false;
@@ -223,26 +224,26 @@ namespace RealVRFishingPCMode
                 zoom = 0f;
                 return;
             }
-            bool rmb = on && Win.Down(VK_RBUTTON);
+            bool rmb = on && Keys.Hook.Down;
             if (rmb && !prevRmb) HookPressedAt = Time.time;
             prevRmb = rmb;
-            bool pgUp = on && Win.Down(VK_PRIOR), pgDn = on && Win.Down(VK_NEXT);
+            bool pgUp = on && Keys.Taller.Down, pgDn = on && Keys.Shorter.Down;
             if (pgUp && !prevPgUp) heightOffset += 0.05f;
             if (pgDn && !prevPgDn) heightOffset -= 0.05f;
             prevPgUp = pgUp; prevPgDn = pgDn;
-            if (on && Win.Down(VK_HOME)) { pitch = 10f; heightOffset = 0f; }
+            if (on && Keys.ResetView.Down) { pitch = 10f; heightOffset = 0f; }
             // A / D swing the rod left / right (fish jumps); in the lodge they also walk
-            bool a = on && Win.Down('A'), dk = on && Win.Down('D');
+            bool a = on && Keys.Left.Down, dk = on && Keys.Right.Down;
             if (a && !prevA) SwingLeftAt = Time.time;
             if (dk && !prevD) SwingRightAt = Time.time;
             prevA = a; prevD = dk;
-            zoom = Mathf.MoveTowards(zoom, on && Win.Down('Z') ? 1f : 0f, Time.unscaledDeltaTime * 6f);
+            zoom = Mathf.MoveTowards(zoom, on && Keys.Zoom.Down ? 1f : 0f, Time.unscaledDeltaTime * 6f);
 
-            m.Trigger = on && Win.Down(VK_LBUTTON);
-            m.TriggerAmount = on && Win.Down(VK_CONTROL) ? 0.4f : 1f;
-            m.Grip = on && Win.Down('F');
-            m.Primary = on && Win.Down('E');
-            m.Secondary = on && Win.Down('R');
+            m.Trigger = on && Keys.Reel.Down;
+            m.TriggerAmount = on && Keys.SlowReel.Down ? 0.4f : 1f;
+            m.Grip = on && Keys.Grab.Down;
+            m.Primary = on && Keys.ButtonA.Down;
+            m.Secondary = on && Keys.ButtonB.Down;
             m.StickClick = false;
             m.Menu = false;
             // Windows sends the wheel to the window under the cursor even when another app has focus
@@ -250,15 +251,15 @@ namespace RealVRFishingPCMode
             if (wheel != 0f) wheelPulse = Mathf.Sign(wheel) * 0.15f;
             float wy = wheelPulse > 0f ? 1f : wheelPulse < 0f ? -1f : 0f;
             wheelPulse = Mathf.MoveTowards(wheelPulse, 0f, Time.unscaledDeltaTime);
-            m.Stick = on ? new Vector2((Win.Down(VK_RIGHT) ? 1f : 0f) - (Win.Down(VK_LEFT) ? 1f : 0f),
-                                       Mathf.Clamp((Win.Down(VK_UP) ? 1f : 0f) - (Win.Down(VK_DOWN) ? 1f : 0f) + wy, -1f, 1f)) : Vector2.zero;
+            m.Stick = on ? new Vector2((Keys.StickRight.Down ? 1f : 0f) - (Keys.StickLeft.Down ? 1f : 0f),
+                                       Mathf.Clamp((Keys.StickUp.Down ? 1f : 0f) - (Keys.StickDown.Down ? 1f : 0f) + wy, -1f, 1f)) : Vector2.zero;
 
-            o.Trigger = on && Win.Down('C');
+            o.Trigger = on && Keys.OffTrigger.Down;
             o.TriggerAmount = 1f;
-            o.Grip = on && Win.Down('V');
-            o.Primary = on && Win.Down('Q');
-            o.Secondary = on && Win.Down('G');
-            o.Menu = on && Win.Down(VK_TAB);
+            o.Grip = on && Keys.OffGrip.Down;
+            o.Primary = on && Keys.ButtonX.Down;
+            o.Secondary = on && Keys.ButtonY.Down;
+            o.Menu = on && Keys.Menu.Down;
             o.StickClick = false;
             o.Stick = Vector2.zero;
         }
@@ -399,11 +400,11 @@ namespace RealVRFishingPCMode
         }
 
         // the lodge has its own stick walking; WASD moves the player directly, including sideways
-        void Walk()
+        void Walk(bool on)
         {
-            if (!focused || head == null || PhotoMode.On) return;
-            float f =(Win.Down('W') ? 1f : 0f) - (Win.Down('S') ? 1f : 0f);
-            float s = (Win.Down('D') ? 1f : 0f) - (Win.Down('A') ? 1f : 0f);
+            if (!on || head == null || PhotoMode.On) return;
+            float f = (Keys.Forward.Down ? 1f : 0f) - (Keys.Back.Down ? 1f : 0f);
+            float s = (Keys.Right.Down ? 1f : 0f) - (Keys.Left.Down ? 1f : 0f);
             if (f == 0f && s == 0f) return;
             if (player == null || !player.isActiveAndEnabled) return;
             // A / D also swing the rod: once a line is out, they must not move you
@@ -416,7 +417,7 @@ namespace RealVRFishingPCMode
             if (Charging) return;
             var fwd = head.forward; fwd.y = 0f; fwd.Normalize();
             var right = head.right; right.y = 0f; right.Normalize();
-            float speed = Plugin.WalkSpeed.Value * (Win.Down(VK_SHIFT) ? 2f : 1f);
+            float speed = Plugin.WalkSpeed.Value * (Keys.Run.Down ? 2f : 1f);
             player.transform.position += (fwd * f + right * s).normalized * speed * Time.deltaTime;
         }
 
@@ -493,12 +494,14 @@ namespace RealVRFishingPCMode
                 GUI.DrawTexture(new Rect(bar.x, bar.yMax - bar.height * i / 4f, bar.width * 0.35f, Mathf.Max(1f, scale)), Texture2D.whiteTexture);
             GUI.color = old;
             GUI.Label(new Rect(bar.center.x - 100 * scale, bar.yMax + 6 * scale, 200 * scale, 30 * scale),
-                "<size=" + Mathf.RoundToInt(14 * scale) + ">right-click: cancel</size>", bigStyle);
+                "<size=" + Mathf.RoundToInt(14 * scale) + ">" + Keys.Hook.Name + ": cancel</size>", bigStyle);
         }
 
         GUIStyle style, bigStyle;
         float nextPlan;
-        string castText;
+        string castText, helpText;
+        int helpVersion = -1;
+        bool helpPowerCast;
 
         void OnGUI()
         {
@@ -508,9 +511,10 @@ namespace RealVRFishingPCMode
                 style = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(18 * scale), richText = true };
                 bigStyle = new GUIStyle(style) { fontSize = Mathf.RoundToInt(24 * scale), alignment = TextAnchor.MiddleCenter };
             }
+            if (SettingsPanel.Open) { SettingsPanel.Draw(scale); return; }
             if (PhotoMode.On) { PhotoMode.Draw(scale, style, showHelp); return; }
             var c = new Vector2(Screen.width / 2f, Screen.height / 2f);
-            if (focused && !Win.Down(VK_LALT))
+            if (focused && !Keys.FreeCursor.Down)
                 GUI.Label(new Rect(c.x - 40 * scale, c.y - 20 * scale, 80 * scale, 40 * scale), "<b>+</b>", bigStyle);
 
             if (Time.unscaledTime >= nextPlan)
@@ -526,15 +530,31 @@ namespace RealVRFishingPCMode
                 GUI.Label(new Rect(20 * scale, Screen.height - 170 * scale, Screen.width - 40 * scale, 160 * scale), Diag.Text, style);
 
             if (!showHelp) return;
-            GUI.Label(new Rect(20 * scale, 20 * scale, 1400 * scale, 400 * scale),
-                "<b>Real VR Fishing PC Mode</b>  (F1 hides this)\n" +
-                "Mouse: look   Z: zoom   Hold Alt: free cursor   Left-click: click menus, grab the rod\n" +
-                (Plugin.PowerCast ? "Cast: aim, hold left-click to wind up, let go when the bar is where you want (right-click cancels)\n"
-                                  : "Cast: left-click the spot on the water\n") +
-                "Hold left-click: reel (with Ctrl: slow)   Right-click: set the hook / land the fish   A / D: swing the rod when a fish jumps\n" +
-                "Arrows or wheel: right stick (depth, bait)   Tab: menu   F: grab   E / R: A / B   Q / G: X / Y\n" +
-                "WASD: walk in the lodge (Shift runs)   Page Up / Page Down: taller / shorter   Home: reset view\n" +
-                "Landed fish: hold middle mouse and move to turn it (left / right arrows spin it)   P: photo mode", style);
+            if (helpVersion != Keys.Version || helpPowerCast != Plugin.PowerCast)
+            {
+                helpVersion = Keys.Version; helpPowerCast = Plugin.PowerCast;
+                helpText = HelpText();
+            }
+            GUI.Label(new Rect(20 * scale, 20 * scale, 1400 * scale, 400 * scale), helpText, style);
+        }
+
+        // the controls list, written with whatever keys are bound
+        static string HelpText()
+        {
+            string reel = Keys.Reel.Name, hook = Keys.Hook.Name;
+            bool arrows = Keys.StickUp.Vk == 0x26 && Keys.StickDown.Vk == 0x28 && Keys.StickLeft.Vk == 0x25 && Keys.StickRight.Vk == 0x27;
+            bool wasd = Keys.Forward.Vk == 'W' && Keys.Left.Vk == 'A' && Keys.Back.Vk == 'S' && Keys.Right.Vk == 'D';
+            string stick = arrows ? "Arrows" : $"{Keys.StickUp.Name} / {Keys.StickDown.Name} / {Keys.StickLeft.Name} / {Keys.StickRight.Name}";
+            string walk = wasd ? "WASD" : $"{Keys.Forward.Name} / {Keys.Left.Name} / {Keys.Back.Name} / {Keys.Right.Name}";
+            string spin = arrows ? "left / right arrows" : $"{Keys.StickLeft.Name} / {Keys.StickRight.Name}";
+            return $"<b>Real VR Fishing PC Mode</b>  ({Keys.Help.Name} hides this, F10: settings and keys)\n" +
+                $"Mouse: look   {Keys.Zoom.Name}: zoom   Hold {Keys.FreeCursor.Name}: free cursor   {reel}: click menus, grab the rod\n" +
+                (Plugin.PowerCast ? $"Cast: aim, hold {reel} to wind up, let go when the bar is where you want ({hook} cancels)\n"
+                                  : $"Cast: aim at the water and press {reel}\n") +
+                $"Hold {reel}: reel (with {Keys.SlowReel.Name}: slow)   {hook}: set the hook / land the fish   {Keys.Left.Name} / {Keys.Right.Name}: swing the rod when a fish jumps\n" +
+                $"{stick} or wheel: right stick (depth, bait)   {Keys.Menu.Name}: menu   {Keys.Grab.Name}: grab   {Keys.ButtonA.Name} / {Keys.ButtonB.Name}: A / B   {Keys.ButtonX.Name} / {Keys.ButtonY.Name}: X / Y\n" +
+                $"{walk}: walk in the lodge ({Keys.Run.Name} runs)   {Keys.Taller.Name} / {Keys.Shorter.Name}: taller / shorter   {Keys.ResetView.Name}: reset view\n" +
+                $"Landed fish: hold middle mouse and move to turn it ({spin} spin it)   {Keys.Photo.Name}: photo mode";
         }
     }
 }

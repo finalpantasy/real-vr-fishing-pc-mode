@@ -13,9 +13,10 @@ namespace RealVRFishingPCMode
     {
         public const string Guid = "com.finalpantasy.realvrfishing.pcmode";
         public const string Name = "Real VR Fishing PC Mode";
-        public const string Version = "0.6.3";
+        public const string Version = "0.7.0";
 
         internal static ManualLogSource Log;
+        internal static ConfigFile Cfg;
         internal static ConfigEntry<bool> DisableVR, ClickToCast, OneHanded, AllowOnlineCasting, SharpenScenery;
         internal static ConfigEntry<float> HeadHeight, MouseSensitivity, FieldOfView, ZoomFieldOfView, WalkSpeed, RodLift,
             HandRight, HandUp, HandForward, PowerFillSeconds, RodFollowLook, LodBias;
@@ -45,6 +46,10 @@ namespace RealVRFishingPCMode
             MouseSensitivity = Config.Bind("View", "MouseSensitivity", 0.12f, "Degrees of turn per pixel of mouse movement.");
             FieldOfView = Config.Bind("View", "FieldOfView", 75f, "Vertical field of view in degrees.");
             WalkSpeed = Config.Bind("Movement", "WalkSpeed", 2.0f, "Walking speed in the lodge, meters per second.");
+            Keys.Init(Config);
+            // the F10 panel changes values every frame while a slider is dragged; it saves once when it closes
+            Cfg = Config;
+            Config.SaveOnConfigSet = false;
 
             if (!DisableVR.Value)
             {

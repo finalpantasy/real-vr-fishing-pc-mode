@@ -7,6 +7,7 @@ INSTALL
    winhttp.dll must end up right next to RealVrFishing.exe (not in a subfolder).
 3. Start the game from Steam as usual. The first start takes a little longer.
    A list of controls shows at the top-left. F1 hides it.
+   Press F10 in game to change settings and keys.
 
 UNINSTALL
 Double-click "Uninstall Real VR Fishing PC Mode.bat" in the game folder.

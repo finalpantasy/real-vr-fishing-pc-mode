@@ -17,6 +17,7 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 - **Power-bar casting.** Hold left-click to wind up and let go to cast toward your crosshair.
 - **Real fights.** Reel with left-click, set the hook with right-click, and swing the rod with A / D when a fish jumps. Reeling is never faster than in VR, so it stays fair.
 - **Photo mode.** Hold your fish up, spin it, hide your hands, show the catch card, fly the camera around and save a picture.
+- **Settings in game.** Press **F10** to change mouse sensitivity, field of view, casting and more, and to change any key.
 
 | Power-bar casting | Fighting a fish |
 | --- | --- |
@@ -28,7 +29,7 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 
 You only do this once. It takes about two minutes.
 
-1. **Download** `RealVRFishingPCMode-v0.6.3.zip` from the [latest release](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest). Find it under **Assets**.
+1. **Download** `RealVRFishingPCMode-v0.7.0.zip` from the [latest release](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest). Find it under **Assets**.
 2. **Open the game folder.** In Steam, right-click **Real VR Fishing**, then click **Manage**, then **Browse local files**. A folder opens with `RealVrFishing.exe` in it.
 3. **Copy the mod in.** Open the zip, select everything inside it (Ctrl+A), and drag it into the game folder. If Windows asks about replacing files, click **Replace**.
 4. **Check it.** `winhttp.dll` and a `BepInEx` folder should now be in the game folder, right next to `RealVrFishing.exe`. They must not be in a subfolder.
@@ -59,6 +60,9 @@ You only do this once. It takes about two minutes.
 | Home | Reset the view |
 | F1 | Show or hide the controls list |
 | P | Photo mode |
+| F10 | Settings and keys |
+
+These are the default keys. Press **F10** and open the **Keys** tab to change any of them.
 
 After you land a fish, hold the **middle mouse button** and move the mouse to turn it. The **left and right arrow keys** spin it.
 
@@ -99,7 +103,7 @@ Either way, the game is back to normal and plays in VR again. Your saves are not
 ## Questions
 
 **Nothing changed, the game still wants VR.**
-The files ended up in the wrong place. `winhttp.dll` must sit right next to `RealVrFishing.exe`, not inside a folder like `RealVRFishingPCMode-v0.6.3`. Move the files up one level.
+The files ended up in the wrong place. `winhttp.dll` must sit right next to `RealVrFishing.exe`, not inside a folder like `RealVRFishingPCMode-v0.7.0`. Move the files up one level.
 
 **My antivirus flagged `winhttp.dll`.**
 That file is the BepInEx mod loader, which many Unity game mods use. It is open source ([Unity Doorstop](https://github.com/NeighTools/UnityDoorstop)) and gets flagged because it loads into the game. Allow it, or download BepInEx yourself from its [official page](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5) to compare.
@@ -118,19 +122,20 @@ Check the [releases page](https://github.com/finalpantasy/real-vr-fishing-pc-mod
 
 ## Settings
 
-After the first start, the settings file is at `BepInEx\config\com.finalpantasy.realvrfishing.pcmode.cfg` in the game folder. Open it with Notepad, change a value, save, and restart the game. Each setting has a description in the file.
+Press **F10** in game. Changes apply right away and are saved when you close the panel (F10, Esc or **Close**).
+
+| Settings tab | Keys tab |
+| --- | --- |
+| ![The F10 settings tab with sliders for sensitivity, field of view and casting](docs/images/panel-settings.jpg) | ![The F10 keys tab listing every key](docs/images/panel-keys.jpg) |
+
+- **Settings:** mouse sensitivity, field of view, zoom, eye height, cast mode, power bar speed, rod angle, walk speed, mouse casting in online rooms and sharper far scenery. **Reset settings** puts them back.
+- **Keys:** click a key, then press the new key or mouse button. Esc cancels. An orange note shows when two actions share a key. **Reset keys** puts them all back. F9, F10 and Esc can't be changed, so you can always get back in.
+
+Everything is also in the settings file, `BepInEx\config\com.finalpantasy.realvrfishing.pcmode.cfg` in the game folder. Edit it with Notepad while the game is closed. Each setting has a description in the file. One setting is only in the file:
 
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `DisableVR` | true | Set to `false` to play in your VR headset again (the mod switches itself off) |
-| `MouseSensitivity` | 0.12 | Degrees of turn per pixel of mouse movement |
-| `FieldOfView` | 75 | How wide you see, in degrees |
-| `ZoomFieldOfView` | 30 | How wide you see while holding Z |
-| `HeadHeight` | 1.70 | Eye height in meters (1.70 m is about 5 ft 7 in) |
-| `CastMode` | PowerBar | `PowerBar` (hold and let go) or `ClickSpot` (click a spot on the water) |
-| `PowerFillSeconds` | 1.1 | Seconds for the power bar to fill |
-| `AllowOnlineCasting` | false | Allow mouse casting in online rooms |
-| `SharpenScenery` | true | Sharper distant shores and skylines (uses up to 1 GB of video memory) |
 
 ## For developers
 

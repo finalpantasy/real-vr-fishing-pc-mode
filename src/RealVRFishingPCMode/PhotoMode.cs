@@ -14,8 +14,7 @@ namespace RealVRFishingPCMode
     // In or out of photo mode, holding the middle mouse button turns a landed fish instead of your head.
     static class PhotoMode
     {
-        const int VK_MBUTTON = 0x04, VK_RETURN = 0x0D, VK_SHIFT = 0x10, VK_SPACE = 0x20,
-            VK_HOME = 0x24, VK_LEFT = 0x25, VK_RIGHT = 0x27;
+        const int VK_MBUTTON = 0x04, VK_RETURN = 0x0D, VK_SHIFT = 0x10, VK_SPACE = 0x20, VK_HOME = 0x24;
         const float MaxFly = 8f, MinEyeHeight = 0.3f;
 
         public static bool On;
@@ -72,12 +71,12 @@ namespace RealVRFishingPCMode
                 main = null;
             }
             FindFish();
-            if (Pressed(focused, 'P')) Toggle(d);
+            if (Pressed(focused, Keys.Photo.Vk)) Toggle(d);
 
             float dt = Time.unscaledDeltaTime;
             if (fish != null)
             {
-                float turn = (focused && Win.Down(VK_RIGHT) ? 1f : 0f) - (focused && Win.Down(VK_LEFT) ? 1f : 0f);
+                float turn = (focused && Keys.StickRight.Down ? 1f : 0f) - (focused && Keys.StickLeft.Down ? 1f : 0f);
                 spin += 120f * dt * turn;
             }
             if (!On) { RestoreBait(); return; }
@@ -97,8 +96,8 @@ namespace RealVRFishingPCMode
 
             if (focused)
             {
-                float f = (Win.Down('W') ? 1f : 0f) - (Win.Down('S') ? 1f : 0f);
-                float s = (Win.Down('D') ? 1f : 0f) - (Win.Down('A') ? 1f : 0f);
+                float f = (Keys.Forward.Down ? 1f : 0f) - (Keys.Back.Down ? 1f : 0f);
+                float s = (Keys.Right.Down ? 1f : 0f) - (Keys.Left.Down ? 1f : 0f);
                 float u = (Win.Down('E') || Win.Down(VK_SPACE) ? 1f : 0f) - (Win.Down('Q') ? 1f : 0f);
                 var move = yawRot * new Vector3(s, 0f, f) + Vector3.up * u;
                 if (move.sqrMagnitude > 0f)
@@ -393,9 +392,9 @@ namespace RealVRFishingPCMode
                 GUI.Label(new Rect(20 * scale, 20 * scale, 1200 * scale, 30 * scale), "Saved to Pictures\\RealVRFishing\\" + savedName, style);
             if (!showHelp) return;
             GUI.Label(new Rect(20 * scale, Screen.height - 60 * scale, Screen.width - 40 * scale, 50 * scale),
-                "<b>Photo mode</b>  Enter: save   WASD: move   E / Q: up / down   Wheel: zoom   Home: reset   H: hide hands, rod, line and float   B: catch board" +
+                "<b>Photo mode</b>  Enter: save   " + Keys.Forward.Name + Keys.Left.Name + Keys.Back.Name + Keys.Right.Name + ": move   E / Q: up / down   Wheel: zoom   Home: reset   H: hide hands, rod, line and float   B: catch board" +
                 (fish != null ? "   Hold middle mouse: turn the fish (with wheel: nearer / farther)   F: " + (holdFish ? "put the fish back" : "hold the fish up") : "") +
-                "   P: exit   F1: hide this", style);
+                "   " + Keys.Photo.Name + ": exit   " + Keys.Help.Name + ": hide this", style);
         }
     }
 }
