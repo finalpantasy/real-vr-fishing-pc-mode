@@ -47,6 +47,22 @@ You only do this once. It takes about two minutes.
 
 ![The controls list at the top-left and the stats corner at the top-right, over the Han River](docs/images/controls-list.jpg)
 
+### Steam Deck and Linux (untested)
+
+The game runs through Proton there, and the mod should work with one extra step. Proton uses its own `winhttp.dll` unless told otherwise, and without the step below the mod never loads.
+
+1. On a Steam Deck, switch to **Desktop Mode**.
+2. Do steps 1 to 4 above: extract everything from the zip into the game folder, next to `RealVrFishing.exe`.
+3. In Steam, right-click **Real VR Fishing**, then click **Properties**. Under **Launch Options**, paste:
+
+   ```
+   WINEDLLOVERRIDES="winhttp=n,b" %command%
+   ```
+
+4. Start the game. The first start takes a little longer than normal.
+
+The Deck's controls show up as an Xbox controller, so keep its Steam Input layout on **Gamepad**. This hasn't been tested on a Deck yet. If you try it, please [open an issue](https://github.com/finalpantasy/real-vr-fishing-pc-mode/issues) and say how it went.
+
 ## Controls
 
 | Key | What it does |
