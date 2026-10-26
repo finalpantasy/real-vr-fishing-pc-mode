@@ -46,7 +46,7 @@ namespace RealVRFishingPCMode
                 Plugin.PowerCast ? new[] { "Hold", reel, "and let go to cast. The bar sets how far." }
                                  : new[] { "Aim at the water and press", reel, "to cast there." },
                 new[] { "Hold", reel, "to reel. When a fish bites, press", hook, "to set the hook." },
-                new[] { Ui.KeyMark + "F10", Pad.InUse ? "on the keyboard opens settings and buttons," : "opens settings and keys,",
+                new[] { Ui.KeyMark + "F10", Pad.InUse ? "or holding the controls-list button opens settings and buttons," : "opens settings and keys,",
                     K(Keys.Help), "shrinks or hides the controls card." },
             };
             string[] titles = { "Cast", "Reel and hook", "Make it yours" };

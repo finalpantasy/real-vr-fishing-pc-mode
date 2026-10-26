@@ -65,7 +65,9 @@ namespace RealVRFishingPCMode
 
         float yaw, pitch = 10f, heightOffset, zoom = 1f, zoomFrom;
         float hookStrength = 1f, hookHold, prevPull;
-        bool focused, wasLocked, prevF1, prevF9, prevRmb, prevPgUp, prevPgDn, prevA, prevD, prevZoom;
+        bool focused, wasLocked, prevF1, prevF9, prevRmb, prevPgUp, prevPgDn, prevA, prevD, prevZoom, padHelpFired;
+        float padHelpHeld;
+        public const float HoldForSettings = 0.8f;
         int zoomStep;
         Transform head, headParent, leftHand, rightHand;
         Camera cam;
@@ -237,9 +239,21 @@ namespace RealVRFishingPCMode
         {
             MainSide = MainIsRight() ? HAND_SIDE.RIGHT : HAND_SIDE.LEFT;
             var m = Main; var o = Off;
-            bool f1 = on && Keys.Help.Down;
+            bool f1 = on && Win.Down(Keys.Help.Vk);
             if (f1 && !prevF1) HelpMode = (helpMode + 1) % HelpModes.Length;
             prevF1 = f1;
+            // on a controller a tap switches the list when let go, and a hold opens the settings
+            bool padHelp = on && Pad.Down(Keys.Help.PadButton);
+            if (padHelp)
+            {
+                padHelpHeld += Time.unscaledDeltaTime;
+                if (padHelpHeld >= HoldForSettings && !padHelpFired) { padHelpFired = true; SettingsPanel.Toggle(); }
+            }
+            else
+            {
+                if (padHelpHeld > 0f && !padHelpFired) HelpMode = (helpMode + 1) % HelpModes.Length;
+                padHelpHeld = 0f; padHelpFired = false;
+            }
             bool f9 = on && Win.Down(Keys.F9);
             if (f9 && !prevF9) Diag.Toggle();
             prevF9 = f9;
@@ -309,14 +323,15 @@ namespace RealVRFishingPCMode
             o.TriggerAmount = 1f;
             o.Grip = on && Keys.OffGrip.Down;
             o.Primary = on && Keys.ButtonX.Down;
-            o.Secondary = on && Keys.ButtonY.Down;
+            // the game opens its menu on either hand's B / Y button; the controller menu button toggles its music player
             // the LIV camera tablet opens right in front of you and covers the wrist menu, which a VR hand would reach
-            // around; here the menu button puts the tablet away first, and the next press opens the menu
+            // around; here the menu key puts the tablet away first, and the next press opens the menu
             bool menu = on && Keys.Menu.Down;
             if (menu && !prevMenu && CloseLivTablet()) menuSwallowed = true;
             if (!menu) menuSwallowed = false;
             prevMenu = menu;
-            o.Menu = menu && !menuSwallowed;
+            o.Secondary = on && Keys.ButtonY.Down || menu && !menuSwallowed;
+            o.Menu = on && Keys.Music.Down;
             o.StickClick = false;
             o.Stick = Vector2.zero;
         }
@@ -751,8 +766,11 @@ namespace RealVRFishingPCMode
             foreach (var r in helpLeft) lw = Mathf.Max(lw, Ui.KeyLine(0f, 0f, r.Keys, r.Text, chip, 14, true));
             foreach (var r in helpRight) rw = Mathf.Max(rw, Ui.KeyLine(0f, 0f, r.Keys, r.Text, chip, 14, true));
             string[] f1 = { HelpKey(Keys.Help) }, f10 = { "F10" };
+            // on a controller the settings open by holding the controls-list button
+            bool padSettings = Pad.InUse && Keys.Help.PadButton != Pad.Button.None;
+            string settingsText = padSettings ? "hold: settings" : "settings";
             string next = helpMode == 1 ? "hide" : "smaller";
-            float hide = Ui.KeyLine(0f, 0f, f1, next, chip, 13, true), settings = Ui.KeyLine(0f, 0f, f10, "settings", chip, 13, true);
+            float hide = Ui.KeyLine(0f, 0f, f1, next, chip, 13, true), settings = Ui.KeyLine(0f, 0f, padSettings ? f1 : f10, settingsText, chip, 13, true);
             var titleStyle = Ui.Style(18, true);
             const string title = "Real VR Fishing  <color=#45C7DB>PC Mode</color>";
             float w = pad * 2f + Mathf.Max(lw + gap + rw, Ui.Width(title, titleStyle) + hide + settings + Ui.S(40f));
@@ -764,7 +782,7 @@ namespace RealVRFishingPCMode
             float cy = y + pad;
             Ui.Label(new Rect(x + pad, cy, w, Ui.S(26f)), title, titleStyle, Ui.Text);
             float hx = x + w - pad - settings;
-            Ui.KeyLine(hx, cy + Ui.S(1f), f10, "settings", chip, 13);
+            Ui.KeyLine(hx, cy + Ui.S(1f), padSettings ? f1 : f10, settingsText, chip, 13);
             Ui.KeyLine(hx - Ui.S(16f) - hide, cy + Ui.S(1f), f1, next, chip, 13);
             cy += Ui.S(30f) + Ui.S(6f);
             Ui.Box(new Rect(x + pad, cy, w - 2f * pad, Mathf.Max(1f, Ui.Scale)), Ui.Edge, 0f);

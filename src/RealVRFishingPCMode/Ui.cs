@@ -34,7 +34,7 @@ namespace RealVRFishingPCMode
                 fontsTried = true;
                 // one font only: a second OS font (Segoe UI Semibold) shares the first one's text cache in Unity 6
                 // and draws other labels' strings, so bold is the same font with a bold style
-                try { regular = Font.CreateDynamicFontFromOSFont(new[] { "Segoe UI", "Arial" }, 16); }
+                try { regular = OsFont(); }
                 catch (Exception e) { Plugin.Log.LogWarning("fonts: " + e.Message); }
             }
             st = new GUIStyle(GUI.skin.label)
@@ -45,6 +45,23 @@ namespace RealVRFishingPCMode
             st.normal.textColor = Color.white;
             styles[key] = st;
             return st;
+        }
+
+        // Segoe UI or Arial when the system has one that draws; null keeps Unity's built-in font. On Linux (Proton)
+        // neither is installed and the OS font comes back with no glyphs, so every label drew as nothing
+        static Font OsFont()
+        {
+            var installed = new HashSet<string>(Font.GetOSInstalledFontNames(), StringComparer.OrdinalIgnoreCase);
+            foreach (var name in new[] { "Segoe UI", "Arial" })
+            {
+                if (!installed.Contains(name)) continue;
+                var f = Font.CreateDynamicFontFromOSFont(name, 16);
+                f.RequestCharactersInTexture("Ag", 16);
+                if (f.GetCharacterInfo('A', out var info, 16) && info.advance > 0) return f;
+                Plugin.Log.LogWarning("fonts: " + name + " has no glyphs, trying the next one");
+            }
+            Plugin.Log.LogInfo("fonts: using Unity's built-in font");
+            return null;
         }
 
         public static void Box(Rect r, Color c, float radius, float border = 0f)

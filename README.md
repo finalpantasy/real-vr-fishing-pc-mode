@@ -61,7 +61,7 @@ The game runs through Proton there, and the mod should work with one extra step.
 
 4. Start the game. The first start takes a little longer than normal.
 
-The Deck's controls show up as an Xbox controller, so keep its Steam Input layout on **Gamepad**. This hasn't been tested on a Deck yet. If you try it, please [open an issue](https://github.com/finalpantasy/real-vr-fishing-pc-mode/issues) and say how it went.
+The Deck's controls show up as an Xbox controller, so keep its Steam Input layout on **Gamepad**. Hold **Select** (View) to open the settings, since there's no F10 key. A player has it running on a ROG Ally X with SteamOS; it hasn't been tested on a Steam Deck yet. If you try it, please [open an issue](https://github.com/finalpantasy/real-vr-fishing-pc-mode/issues) and say how it went.
 
 ## Controls
 
@@ -76,6 +76,7 @@ The Deck's controls show up as an Xbox controller, so keep its Steam Input layou
 | Z | Zoom: press to step in, in more, back out |
 | Hold Alt | Free the mouse cursor |
 | Tab | Game menu (if the LIV camera tablet is open, the first press puts it away) |
+| M | Music player |
 | WASD | Walk in the lodge (Shift runs) |
 | Arrow keys or mouse wheel | Lure depth and bait (the VR thumbstick) |
 | F | Grab |
@@ -95,6 +96,8 @@ After you land a fish, hold the **middle mouse button** and move the mouse to tu
 
 Plug in an Xbox or PlayStation controller (USB or Bluetooth) and just use it. The on-screen help switches to controller buttons as soon as you touch it, and back to keys when you move the mouse.
 
+**Controller not working?** Steam can hand the game keyboard and mouse input instead of a controller. In Steam, open Real VR Fishing's page, click the controller icon (**View controller settings**), and pick the **Gamepad** layout.
+
 | Button (Xbox / PlayStation) | What it does |
 | --- | --- |
 | Right stick | Look around |
@@ -107,10 +110,10 @@ Plug in an Xbox or PlayStation controller (USB or Bluetooth) and just use it. Th
 | D-pad left / right | Spin a landed fish |
 | A, B, X, Y / Cross, Circle, Square, Triangle | The VR controller's A, B, X, Y buttons |
 | Start / Options | Game menu |
-| Select / Create | Controls list: full, small, hidden |
+| Select / Create | Tap: controls list full, small, hidden. Hold: settings (same as F10) |
 | Right stick click | Reset the view |
 
-Press **F10** on the keyboard and open the **Controller** tab to pick Xbox or PlayStation labels, set the look speed, invert looking up and down, change how strongly it rumbles, or make either trigger Squeeze or Full. The **Buttons** tab changes any button. The controller ticks lightly when a fish nibbles, thumps hard when it takes the bait (set the hook), and rumbles steadily while the line is red (ease off).
+Press **F10** (or hold **Select / Create**) and open the **Controller** tab to pick Xbox or PlayStation labels, set the look speed, invert looking up and down, change how strongly it rumbles, or make either trigger Squeeze or Full. The **Buttons** tab changes any button. The controller ticks lightly when a fish nibbles, thumps hard when it takes the bait (set the hook), and rumbles steadily while the line is red (ease off).
 
 ### Catch screen
 

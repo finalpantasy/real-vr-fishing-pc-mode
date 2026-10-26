@@ -23,7 +23,7 @@ namespace RealVRFishingPCMode
         public static int Version;
 
         public static Bind Reel, Hook, SlowReel, Zoom, FreeCursor, Left, Right, Forward, Back, Run, Grab, ButtonA, ButtonB,
-            ButtonX, ButtonY, OffTrigger, OffGrip, Menu, StickUp, StickDown, StickLeft, StickRight, Taller, Shorter, ResetView,
+            ButtonX, ButtonY, OffTrigger, OffGrip, Menu, Music, StickUp, StickDown, StickLeft, StickRight, Taller, Shorter, ResetView,
             Help, Photo, Keep, Release, CardToggle;
 
         public const int Escape = 0x1B, F9 = 0x78, F10 = 0x79;
@@ -41,6 +41,7 @@ namespace RealVRFishingPCMode
             Zoom = Add(cfg, "Zoom", "Zoom in, in more, out", 'Z', Pad.Button.LB);
             FreeCursor = Add(cfg, "FreeCursor", "Hold to free the mouse cursor", 0xA4, Pad.Button.None);
             Menu = Add(cfg, "Menu", "Game menu", 0x09, Pad.Button.Menu);
+            Music = Add(cfg, "MusicPlayer", "Music player", 'M', Pad.Button.None);
             Grab = Add(cfg, "Grab", "Grab (rod hand grip)", 'F', Pad.Button.RB);
             ButtonA = Add(cfg, "ButtonA", "VR controller A button", 'E', Pad.Button.A);
             ButtonB = Add(cfg, "ButtonB", "VR controller B button", 'R', Pad.Button.B);

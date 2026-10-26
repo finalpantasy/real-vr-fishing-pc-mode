@@ -28,6 +28,9 @@ namespace RealVRFishingPCMode
             prevF10 = f10; prevEsc = esc; prevPadB = padB;
         }
 
+        // holding the controls-list button on a controller, for handhelds with no F10
+        public static void Toggle() { if (capturing == null && capturingPad == null) SetOpen(!Open); }
+
         static void SetOpen(bool open)
         {
             Open = open;
