@@ -305,6 +305,9 @@ namespace RealVRFishingPCMode
             // with the line out, holding them keeps the rod pulled to that side: when a fish runs, the game wants the rod
             // held well off the line (12° to 28° by fish size) for as long as the run lasts
             float holdTarget = LineOut() ? (dk ? 1f : 0f) - (a ? 1f : 0f) : 0f;
+            // on the left stick it leans as far as the stick is pushed (keys still go all the way)
+            bool stickLean = Keys.Left.PadButton == Pad.Button.LStickLeft && Keys.Right.PadButton == Pad.Button.LStickRight;
+            if (on && stickLean && LineOut() && !Win.Down(Keys.Left.Vk) && !Win.Down(Keys.Right.Vk)) holdTarget = Pad.LeftStick.x;
             holdSide = Mathf.MoveTowards(holdSide, holdTarget, Time.unscaledDeltaTime * 5f);
             bool zk = on && Keys.Zoom.Down;
             // each step blends from wherever the view is now, so zooming back out goes straight to normal
@@ -611,7 +614,7 @@ namespace RealVRFishingPCMode
 
         // with the line out the rod leans to the side for as long as A / D are held, so a quick tap is a flick and a hold stays;
         // the lean is slow enough that the game never mistakes it for a lure twitch
-        float RodAnimSwing() => LineOut() ? Mathf.SmoothStep(0f, 1f, Mathf.Abs(holdSide)) * Mathf.Sign(holdSide) * HoldSwing
+        float RodAnimSwing() => LineOut() ? holdSide * HoldSwing
             : (Bump(Time.time - SwingRightAt, 0.35f) - Bump(Time.time - SwingLeftAt, 0.35f)) * 40f;
 
         // well past the 28° the biggest fish need, so the rod still counts when you aren't looking straight down the line
