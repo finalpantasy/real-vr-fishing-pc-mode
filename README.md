@@ -37,7 +37,7 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 
 You only do this once. It takes about two minutes.
 
-1. **Download** `RealVRFishingPCMode-v0.8.3.zip` from the [latest release](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest). Find it under **Assets**.
+1. **Download** `RealVRFishingPCMode-v0.8.4.zip` from the [latest release](https://github.com/finalpantasy/real-vr-fishing-pc-mode/releases/latest). Find it under **Assets**.
 2. **Open the game folder.** In Steam, right-click **Real VR Fishing**, then click **Manage**, then **Browse local files**. A folder opens with `RealVrFishing.exe` in it.
 3. **Copy the mod in.** Open the zip, select everything inside it (Ctrl+A), and drag it into the game folder. If Windows asks about replacing files, click **Replace**.
 4. **Check it.** `winhttp.dll` and a `BepInEx` folder should now be in the game folder, right next to `RealVrFishing.exe`. They must not be in a subfolder.
@@ -167,7 +167,7 @@ Either way, the game is back to normal and plays in VR again. Your saves are not
 ## Questions
 
 **Nothing changed, the game still wants VR.**
-The files ended up in the wrong place. `winhttp.dll` must sit right next to `RealVrFishing.exe`, not inside a folder like `RealVRFishingPCMode-v0.8.3`. Move the files up one level.
+The files ended up in the wrong place. `winhttp.dll` must sit right next to `RealVrFishing.exe`, not inside a folder like `RealVRFishingPCMode-v0.8.4`. Move the files up one level.
 
 **My antivirus flagged `winhttp.dll`.**
 That file is the BepInEx mod loader, which many Unity game mods use. It is open source ([Unity Doorstop](https://github.com/NeighTools/UnityDoorstop)) and gets flagged because it loads into the game. Allow it, or download BepInEx yourself from its [official page](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5) to compare.
