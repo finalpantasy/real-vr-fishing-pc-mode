@@ -260,7 +260,11 @@ namespace RealVRFishingPCMode
             if (on)
                 foreach (var b in Keys.All)
                     if (Win.Down(b.Vk)) { Pad.InUse = false; break; }
-            if (PhotoMode.On || SettingsPanel.Open || Tips.Open || CatchCard.Showing && !CatchCard.Hidden)
+            // the controller button that closed the settings or the tips (B, A) reaches the game only once it's let go,
+            // or B would open the game menu straight after
+            if (SettingsPanel.Open || Tips.Open) padAfterModal = true;
+            else if (padAfterModal && Pad.FirstDown(sticks: true) == Pad.Button.None) padAfterModal = false;
+            if (PhotoMode.On || SettingsPanel.Open || Tips.Open || padAfterModal || CatchCard.Showing && !CatchCard.Hidden)
             {
                 // photo mode, the settings panel or the catch screen owns the keyboard; the game sees both controllers at rest
                 foreach (var h in new[] { m, o })
@@ -336,7 +340,7 @@ namespace RealVRFishingPCMode
             o.Stick = Vector2.zero;
         }
 
-        bool prevMenu = true, menuSwallowed;
+        bool prevMenu = true, menuSwallowed, padAfterModal;
 
         static bool CloseLivTablet()
         {

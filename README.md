@@ -61,7 +61,7 @@ The game runs through Proton there, and the mod should work with one extra step.
 
 4. Start the game. The first start takes a little longer than normal.
 
-The Deck's controls show up as an Xbox controller, so keep its Steam Input layout on **Gamepad**. Hold **Select** (View) to open the settings, since there's no F10 key. A player has it running on a ROG Ally X with SteamOS; it hasn't been tested on a Steam Deck yet. If you try it, please [open an issue](https://github.com/finalpantasy/real-vr-fishing-pc-mode/issues) and say how it went.
+The Deck's controls show up as an Xbox controller, so keep its Steam Input layout on **Gamepad**. Hold **Select** (View) to open the settings, since there's no F10 key, and use the D-pad to change them. A player has it running on a ROG Ally X with SteamOS; it hasn't been tested on a Steam Deck yet. If you try it, please [open an issue](https://github.com/finalpantasy/real-vr-fishing-pc-mode/issues) and say how it went.
 
 ## Controls
 
@@ -113,7 +113,7 @@ Plug in an Xbox or PlayStation controller (USB or Bluetooth) and just use it. Th
 | Select / Create | Tap: controls list full, small, hidden. Hold: settings (same as F10) |
 | Right stick click | Reset the view |
 
-Press **F10** (or hold **Select / Create**) and open the **Controller** tab to pick Xbox or PlayStation labels, set the look speed, invert looking up and down, change how strongly it rumbles, or make either trigger Squeeze or Full. The **Buttons** tab changes any button. The controller ticks lightly when a fish nibbles, thumps hard when it takes the bait (set the hook), and rumbles steadily while the line is red (ease off).
+Press **F10** (or hold **Select / Create**) and open the **Controller** tab to pick Xbox or PlayStation labels, set the look speed, invert looking up and down, change how strongly it rumbles, or make either trigger Squeeze or Full. The **Buttons** tab changes any button. The whole settings panel works on the controller: the D-pad or left stick moves, left / right changes a slider or option, A presses, LB / RB switch tabs, and B closes. The controller ticks lightly when a fish nibbles, thumps hard when it takes the bait (set the hook), and rumbles steadily while the line is red (ease off).
 
 ### Catch screen
 

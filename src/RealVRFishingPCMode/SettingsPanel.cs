@@ -14,7 +14,14 @@ namespace RealVRFishingPCMode
         static bool waitRelease, prevF10, prevEsc, prevPadB, dirty;
         static Vector2 scroll;
         static string clashNote;
-        static float contentHeight;
+        static float contentHeight, bodyHeight;
+        static readonly string[] Tabs = { "View", "Fishing", "System", "Keys", "Controller", "Buttons" };
+
+        // on a controller: the D-pad or left stick moves a focus ring through the controls in drawing order, left / right
+        // change the focused one, A presses it, LB / RB switch tabs. Tick reads the pad; the next repaint acts on it
+        static int focus, items, count, navSide, prevDy, prevDx, prevTab;
+        static bool navPress, navScroll, inBody, prevPadA;
+        static float dyAt, dxAt;
 
         // the power bar fill time that "Power bar speed 100%" means
         public const float BaseFillSeconds = 1.375f;
@@ -22,11 +29,89 @@ namespace RealVRFishingPCMode
         public static void Tick(bool focused)
         {
             bool f10 = focused && Win.Down(Keys.F10), esc = focused && Win.Down(Keys.Escape), padB = focused && Pad.Down(Pad.Button.B);
-            if (capturing != null) Capture(focused, esc && !prevEsc);
-            else if (capturingPad != null) CapturePad(focused, esc && !prevEsc);
-            else if ((f10 && !prevF10) || (Open && esc && !prevEsc) || (Open && padB && !prevPadB)) SetOpen(!Open);
+            bool escPressed = esc && !prevEsc, padBPressed = padB && !prevPadB, act = false;
+            // a key can't be typed on a handheld, so B also cancels waiting for one
+            if (capturing != null) Capture(focused, escPressed || padBPressed);
+            else if (capturingPad != null) CapturePad(focused, escPressed);
+            else if ((f10 && !prevF10) || (Open && escPressed) || (Open && padBPressed)) SetOpen(!Open);
+            else act = Open;
+            Navigate(focused, act);
             prevF10 = f10; prevEsc = esc; prevPadB = padB;
         }
+
+        // read every frame, so a button still held after binding it doesn't count as a fresh press
+        static void Navigate(bool focused, bool act)
+        {
+            int dy = !focused ? 0 : Pad.Down(Pad.Button.DpadDown) || Pad.Down(Pad.Button.LStickDown) ? 1 : Pad.Down(Pad.Button.DpadUp) || Pad.Down(Pad.Button.LStickUp) ? -1 : 0;
+            int dx = !focused ? 0 : Pad.Down(Pad.Button.DpadRight) || Pad.Down(Pad.Button.LStickRight) ? 1 : Pad.Down(Pad.Button.DpadLeft) || Pad.Down(Pad.Button.LStickLeft) ? -1 : 0;
+            int tb = !focused ? 0 : Pad.Down(Pad.Button.RB) ? 1 : Pad.Down(Pad.Button.LB) ? -1 : 0;
+            bool a = focused && Pad.Down(Pad.Button.A);
+            int vStep = Repeat(dy, ref prevDy, ref dyAt), hStep = Repeat(dx, ref prevDx, ref dxAt);
+            bool tabPress = tb != 0 && tb != prevTab, aPress = a && !prevPadA;
+            prevTab = tb; prevPadA = a;
+            if (!act) return;
+            if (vStep != 0) { focus = Mathf.Clamp(focus + vStep, 0, Mathf.Max(0, items - 1)); navScroll = true; }
+            if (hStep != 0) navSide = hStep;
+            if (aPress) navPress = true;
+            if (tabPress) SetTab((tab + tb + Tabs.Length) % Tabs.Length);
+        }
+
+        // a direction moves once, then again and again while held
+        static int Repeat(int d, ref int prev, ref float next)
+        {
+            int step = 0;
+            if (d != prev) { step = d; next = Time.unscaledTime + 0.4f; }
+            else if (d != 0 && Time.unscaledTime >= next) { step = d; next = Time.unscaledTime + 0.09f; }
+            prev = d;
+            return step;
+        }
+
+        static void SetTab(int t)
+        {
+            tab = t;
+            capturing = capturingPad = null;
+            scroll = Vector2.zero;
+            focus = 0;
+        }
+
+        static bool Repaint => Event.current.type == EventType.Repaint;
+
+        // each control takes the next number as it's drawn; the focused one gets an accent ring and is kept in view
+        static bool Focus(Rect r)
+        {
+            int i = count++;
+            if (!Pad.InUse || i != focus) return false;
+            if (Repaint)
+            {
+                Ui.Box(new Rect(r.x - S(4f), r.y - S(4f), r.width + S(8f), r.height + S(8f)), Ui.Accent, S(10f), Mathf.Max(1f, S(2f)));
+                if (navScroll && inBody)
+                {
+                    if (r.y - S(48f) < scroll.y) scroll.y = Mathf.Max(0f, r.y - S(48f));
+                    else if (r.yMax + S(40f) > scroll.y + bodyHeight) scroll.y = r.yMax + S(40f) - bodyHeight;
+                }
+            }
+            return true;
+        }
+
+        // A on the focused control, used up by the first control that asks
+        static bool Pressed(bool focused)
+        {
+            if (!focused || !navPress || !Repaint) return false;
+            navPress = false;
+            return true;
+        }
+
+        // left (-1) or right (1) on the focused control, used up by the first control that asks
+        static int Side(bool focused)
+        {
+            if (!focused || !Repaint) return 0;
+            int s = navSide;
+            navSide = 0;
+            return s;
+        }
+
+        // about 60 D-pad steps from one end of a slider to the other, in whole steps of its own
+        static float NavStep(float min, float max, float step) => step * Mathf.Max(1f, Mathf.Round((max - min) / step / 60f));
 
         // holding the controls-list button on a controller, for handhelds with no F10
         public static void Toggle() { if (capturing == null && capturingPad == null) SetOpen(!Open); }
@@ -35,6 +120,7 @@ namespace RealVRFishingPCMode
         {
             Open = open;
             capturing = capturingPad = null;
+            if (open) { focus = 0; navScroll = true; navPress = false; navSide = 0; }
             if (!open) Save();
         }
 
@@ -92,6 +178,7 @@ namespace RealVRFishingPCMode
 
         public static void Draw()
         {
+            count = 0;
             // dim the game behind the panel
             Ui.Box(new Rect(0f, 0f, Screen.width, Screen.height), new Color(0f, 0f, 0f, 0.35f), 0f);
             float w = Mathf.Min(S(760f), Screen.width - S(40f)), h = Mathf.Min(S(880f), Screen.height - S(40f));
@@ -120,26 +207,32 @@ namespace RealVRFishingPCMode
 
             // tabs, underlined in the accent color
             float ty = r.y + S(88f), tx = x;
-            string[] tabs = { "View", "Fishing", "System", "Keys", "Controller", "Buttons" };
-            for (int i = 0; i < tabs.Length; i++)
+            // on a controller, LB and RB chips on either side of the tabs
+            if (Pad.InUse) tx += Ui.ChipWidth(Ui.PadKey(Pad.Button.LB), 24f) + S(8f);
+            if (Pad.InUse) Ui.Chip(x, ty + S(5f), Ui.PadKey(Pad.Button.LB), 24f);
+            for (int i = 0; i < Tabs.Length; i++)
             {
                 var st = Ui.Style(16, true, TextAnchor.MiddleCenter);
-                float tw = Ui.Width(tabs[i], st) + S(24f);
+                float tw = Ui.Width(Tabs[i], st) + S(24f);
                 var tr = new Rect(tx, ty, tw, S(34f));
-                Ui.Label(tr, tabs[i], st, i == tab ? Ui.Text : Ui.Hover(tr) ? Color.Lerp(Ui.Dim, Ui.Text, 0.5f) : Ui.Dim);
+                Ui.Label(tr, Tabs[i], st, i == tab ? Ui.Text : Ui.Hover(tr) ? Color.Lerp(Ui.Dim, Ui.Text, 0.5f) : Ui.Dim);
                 if (i == tab) Ui.Box(new Rect(tr.x + S(8f), tr.yMax - S(3f), tr.width - S(16f), S(3f)), Ui.Accent, S(1.5f));
-                if (Ui.Click(tr) && tab != i) { tab = i; capturing = capturingPad = null; scroll = Vector2.zero; }
+                if (Ui.Click(tr) && tab != i) SetTab(i);
                 tx += tw + S(8f);
             }
+            if (Pad.InUse) Ui.Chip(tx, ty + S(5f), Ui.PadKey(Pad.Button.RB), 24f);
             Ui.Box(new Rect(x, ty + S(34f), iw, Mathf.Max(1f, Ui.Scale)), Ui.Edge, 0f);
 
             // body, scrolled with the mouse wheel when it doesn't fit
             float footH = S(72f), top = ty + S(46f);
             var view = new Rect(x - S(4f), top, iw + S(8f), r.yMax - footH - top);
+            bodyHeight = view.height;
             scroll = GUI.BeginScrollView(view, scroll, new Rect(0f, 0f, view.width - S(8f), Mathf.Max(contentHeight, view.height)), false, false, GUIStyle.none, GUIStyle.none);
             float bx0 = S(4f), bw0 = view.width - S(16f);
+            inBody = true;
             contentHeight = tab == 0 ? DrawView(bx0, bw0) : tab == 1 ? DrawFishing(bx0, bw0) : tab == 2 ? DrawSystem(bx0, bw0)
                 : tab == 3 ? DrawKeys(bx0, bw0) : tab == 4 ? DrawPad(bx0, bw0) : DrawButtons(bx0, bw0);
+            inBody = false;
             GUI.EndScrollView();
             if (contentHeight > view.height)
             {
@@ -152,11 +245,13 @@ namespace RealVRFishingPCMode
             // footer
             float fy = r.yMax - footH;
             Ui.Box(new Rect(x, fy, iw, Mathf.Max(1f, Ui.Scale)), Ui.Edge, 0f);
-            Ui.Label(new Rect(x, fy + S(18f), iw * 0.5f, S(40f)), Pad.InUse ? "Changes apply right away.  F10, Esc or " + Pad.Display(Pad.Button.B) + " closes."
-                : "Changes apply right away.  F10 or Esc closes.", Ui.Style(13), Ui.Dim);
+            if (Pad.InUse)
+                Ui.Flow(x, fy + S(25f), new[] { Ui.PadKey(Pad.Button.DpadDown), "moves,", Ui.PadKey(Pad.Button.A), "changes,", Ui.PadKey(Pad.Button.B), "closes." }, 24f, 13);
+            else Ui.Label(new Rect(x, fy + S(18f), iw * 0.5f, S(40f)), "Changes apply right away.  F10 or Esc closes.", Ui.Style(13), Ui.Dim);
             var done = new Rect(r.xMax - pad - S(110f), fy + S(18f), S(110f), S(40f));
             var reset = new Rect(done.x - S(12f) - S(150f), done.y, S(150f), S(40f));
-            if (Ui.Button(reset, tab == 3 ? "Reset keys" : tab == 5 ? "Reset buttons" : "Reset this tab"))
+            bool focusReset = Focus(reset);
+            if (Ui.Button(reset, tab == 3 ? "Reset keys" : tab == 5 ? "Reset buttons" : "Reset this tab") || Pressed(focusReset))
             {
                 if (tab <= 2) ResetSettings(tab);
                 else if (tab == 3) Keys.ResetAll();
@@ -165,7 +260,17 @@ namespace RealVRFishingPCMode
                 capturing = capturingPad = null;
                 dirty = true;
             }
-            if (Ui.Button(done, "Done", primary: true)) SetOpen(false);
+            if (Side(focusReset) > 0) focus++;
+            bool focusDone = Focus(done);
+            if (Ui.Button(done, "Done", primary: true) || Pressed(focusDone)) SetOpen(false);
+            if (Side(focusDone) < 0) focus--;
+            if (Repaint)
+            {
+                items = count;
+                focus = Mathf.Clamp(focus, 0, Mathf.Max(0, items - 1));
+                navPress = navScroll = false;
+                navSide = 0;
+            }
         }
 
         // each tab draws its rows and returns its height
@@ -280,8 +385,8 @@ namespace RealVRFishingPCMode
         {
             float y = S(10f);
             var note = Ui.Style(14, false, TextAnchor.UpperLeft, true);
-            const string text = "Click a key, then press the new key or mouse button. Esc cancels. F9, F10 and Esc stay fixed. "
-                + "Photo mode moves with Forward, Back, Left and Right; its other keys are fixed.";
+            string text = "Click a key, then press the new key or mouse button. Esc" + (Pad.InUse ? " or " + Pad.Display(Pad.Button.B) : "")
+                + " cancels. F9, F10 and Esc stay fixed. Photo mode moves with Forward, Back, Left and Right; its other keys are fixed.";
             float nh = note.CalcHeight(Ui.Content(text), w);
             Ui.Label(new Rect(x, y, w, nh), text, note, Ui.Dim);
             y += nh + S(14f);
@@ -296,11 +401,12 @@ namespace RealVRFishingPCMode
                 if (Ui.Hover(row)) Ui.Box(row, new Color(1f, 1f, 1f, 0.04f), S(8f));
                 Ui.Label(new Rect(cx, y, colW - bw - S(10f), rowH), b.Label, Fit(b.Label, colW - bw - S(10f)), Ui.Text);
                 var br = new Rect(cx + colW - bw, y + S(4f), bw, rowH - S(8f));
-                bool cap = capturing == b;
+                bool cap = capturing == b, f = Focus(br);
                 Ui.Box(br, cap ? new Color(1f, 0.77f, 0.3f, 0.16f) : new Color(1f, 1f, 1f, Ui.Hover(br) ? 0.18f : 0.11f), S(6f));
                 Ui.Box(br, cap ? Ui.Gold : Ui.Edge, S(6f), Mathf.Max(1f, cap ? S(1.5f) : Ui.Scale));
                 Ui.Label(br, cap ? "Press a key…" : b.Name, Ui.Style(14, true, TextAnchor.MiddleCenter), cap ? Ui.Gold : Ui.Text);
-                if (Ui.Click(br)) { capturing = cap ? null : b; waitRelease = true; }
+                if (Ui.Click(br) || Pressed(f)) { capturing = cap ? null : b; waitRelease = true; }
+                OtherColumn(f, i, rows);
                 // a key used twice gets a gold edge; hovering it says what else uses it
                 string clash = Keys.Clash(b);
                 if (clash != null)
@@ -355,7 +461,9 @@ namespace RealVRFishingPCMode
         {
             float y = S(10f);
             var note = Ui.Style(14, false, TextAnchor.UpperLeft, true);
-            const string text = "Click a button, then press the new controller button or push the left stick. Esc cancels, Delete clears it.";
+            string text = Pad.InUse ? "Pick a button with " + Pad.Display(Pad.Button.A) + ", then press the new controller button or push the left stick. "
+                    + "On a keyboard, Esc cancels and Delete clears it."
+                : "Click a button, then press the new controller button or push the left stick. Esc cancels, Delete clears it.";
             float nh = note.CalcHeight(Ui.Content(text), w);
             Ui.Label(new Rect(x, y, w, nh), text, note, Ui.Dim);
             y += nh + S(14f);
@@ -370,7 +478,7 @@ namespace RealVRFishingPCMode
                 if (Ui.Hover(row)) Ui.Box(row, new Color(1f, 1f, 1f, 0.04f), S(8f));
                 Ui.Label(new Rect(cx, y, colW - bw - S(10f), rowH), b.Label, Fit(b.Label, colW - bw - S(10f)), Ui.Text);
                 var br = new Rect(cx + colW - bw, y + S(4f), bw, rowH - S(8f));
-                bool cap = capturingPad == b;
+                bool cap = capturingPad == b, f = Focus(br);
                 Ui.Box(br, cap ? new Color(1f, 0.77f, 0.3f, 0.16f) : new Color(1f, 1f, 1f, Ui.Hover(br) ? 0.18f : 0.11f), S(6f));
                 Ui.Box(br, cap ? Ui.Gold : Ui.Edge, S(6f), Mathf.Max(1f, cap ? S(1.5f) : Ui.Scale));
                 if (cap) Ui.Label(br, "Press a button…", Ui.Style(14, true, TextAnchor.MiddleCenter), Ui.Gold);
@@ -381,7 +489,8 @@ namespace RealVRFishingPCMode
                     float cw = Ui.ChipWidth(k, 24f);
                     Ui.Chip(br.center.x - cw / 2f, br.center.y - S(12f), k, 24f);
                 }
-                if (Ui.Click(br)) { capturingPad = cap ? null : b; capturing = null; waitRelease = true; }
+                if (Ui.Click(br) || Pressed(f)) { capturingPad = cap ? null : b; capturing = null; waitRelease = true; }
+                OtherColumn(f, i, rows);
                 string clash = Keys.Clash(b, pad: true);
                 if (clash != null)
                 {
@@ -390,6 +499,13 @@ namespace RealVRFishingPCMode
                 }
             }
             return ClashLine(top + rows * rowH, x, w);
+        }
+
+        // in a two-column list, left / right jump to the same row in the other column
+        static void OtherColumn(bool focused, int i, int rows)
+        {
+            int side = Side(focused), j = i + side * rows;
+            if (side != 0 && j >= 0 && j < Keys.All.Count) { focus += side * rows; navScroll = true; }
         }
 
         static void Section(ref float y, float x, string name)
@@ -421,9 +537,12 @@ namespace RealVRFishingPCMode
         static void Slider(ref float y, float x, float w, ConfigEntry<float> e, string name, float min, float max, float step, Func<float, string> format, string help = null)
         {
             var c = Row(ref y, x, w, name, out var value, help);
-            // only a drag changes the value, so a value set outside the slider's range in the file stays as it is
+            bool f = Focus(c);
+            // only a drag or the D-pad changes the value, so a value set outside the slider's range in the file stays as it is
             GUI.changed = false;
             float v = Ui.Slider(c, e.Value, min, max);
+            int side = Side(f);
+            if (side != 0) { v = Mathf.Clamp(e.Value + side * NavStep(min, max, step), min, max); GUI.changed = true; }
             if (GUI.changed)
             {
                 v = Mathf.Round(v / step) * step;
@@ -437,8 +556,11 @@ namespace RealVRFishingPCMode
         {
             var c = Row(ref y, x, w, "Power bar speed", out var value, "How fast the power bar fills while you hold to cast.");
             var e = Plugin.PowerFillSeconds;
+            bool f = Focus(c);
             GUI.changed = false;
             float speed = Ui.Slider(c, BaseFillSeconds / Mathf.Max(0.05f, e.Value), 0.5f, 2f);
+            int side = Side(f);
+            if (side != 0) { speed = Mathf.Clamp(BaseFillSeconds / Mathf.Max(0.05f, e.Value) + side * 0.05f, 0.5f, 2f); GUI.changed = true; }
             if (GUI.changed)
             {
                 speed = Mathf.Round(speed / 0.05f) * 0.05f;
@@ -462,7 +584,12 @@ namespace RealVRFishingPCMode
         {
             var c = Row(ref y, x, w, name, out var value, help);
             if (options[0].Length <= 3) c.width = S(150f);
+            bool f = Focus(c);
             index = Ui.Segmented(c, index, options);
+            // left / right step through the options; A goes to the next one and wraps, which flips an Off / On
+            int side = Side(f);
+            if (side != 0) index = Mathf.Clamp(index + side, 0, options.Length - 1);
+            if (Pressed(f)) index = (index + 1) % options.Length;
             if (note != null)
             {
                 value.x = c.xMax + S(20f);
