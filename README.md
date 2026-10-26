@@ -71,7 +71,7 @@ The Deck's controls show up as an Xbox controller, so keep its Steam Input layou
 | Left-click | Click menus, pick up the rod |
 | Hold left-click, let go | Cast: let go when the power bar is where you want it (right-click cancels) |
 | Hold left-click | Reel in (hold Ctrl too for slow reeling) |
-| Right-click | Twitch the lure, set the hook, swing a landed fish in. Hold it to keep the rod up (fish arrow pointing up) |
+| Right-click | Twitch the lure, set the hook, swing a landed fish in. Hold it to keep the rod up (fish arrow pointing up). Hold A or D while you twitch to dart a lure left or right |
 | A / D | Hold the rod left / right while the fish arrow points that way; a quick tap flicks it (a fish jumping) |
 | Z | Zoom: press to step in, in more, back out |
 | Hold Alt | Free the mouse cursor |
@@ -103,7 +103,7 @@ Plug in an Xbox or PlayStation controller (USB or Bluetooth) and just use it. Th
 | Right stick | Look around |
 | Left stick | Walk in the lodge (click it to run); hold left / right with the fish arrow, a quick push flicks |
 | RT / R2 | Hold and let go to cast; hold to reel (pull lightly to reel slowly) |
-| LT / L2 | Twitch the lure, set the hook, swing a landed fish in. Hold it to keep the rod up (fish arrow pointing up) |
+| LT / L2 | Twitch the lure, set the hook, swing a landed fish in. Hold it to keep the rod up (fish arrow pointing up). Push the left stick left or right while you twitch to dart a lure that way |
 | LB / L1 | Zoom: press to step in, in more, back out |
 | RB / R1 | Grab |
 | D-pad up / down | Lure depth and bait |

@@ -286,7 +286,14 @@ namespace RealVRFishingPCMode
             float sharp = hookFull ? 1f : Mathf.Clamp((pull - prevPull) / Mathf.Max(Time.unscaledDeltaTime, 0.001f) / 10f, 0.35f, 1.2f);
             prevPull = pull;
             if (hookFull) pull = pull > 0.1f ? 1f : 0f;
-            if (rmb && !prevRmb) { HookPressedAt = Time.time; hookStrength = pull > 0f ? sharp : 1f; }
+            if (rmb && !prevRmb)
+            {
+                HookPressedAt = Time.time; hookStrength = pull > 0f ? sharp : 1f;
+                // a twitch with the rod leaned left / right (A / D or the stick) darts the lure that way
+                float lean = (Keys.Right.Down ? 1f : 0f) - (Keys.Left.Down ? 1f : 0f);
+                if (Mathf.Abs(Pad.LeftStick.x) > 0.3f) lean = Mathf.Sign(Pad.LeftStick.x);
+                dartSide = on && Retrieving() ? lean : 0f;
+            }
             else if (pull > 0f && Time.time - HookPressedAt < 0.08f) hookStrength = Mathf.Max(hookStrength, sharp);
             prevRmb = rmb;
             // held, the hook button keeps the rod raised (the fish arrow pointing up); a quick click is only the flick.
@@ -482,6 +489,14 @@ namespace RealVRFishingPCMode
 
             float side = MainSide == HAND_SIDE.RIGHT ? 1f : -1f;
             var mainPos = headPos + yawRot * new Vector3(Plugin.HandRight.Value * side, Plugin.HandUp.Value, Plugin.HandForward.Value);
+            // the game darts a twitched lure along the world's x axis, by how fast the rod hand moves along x in the
+            // play space, so a sideways twitch jerks the hand along x toward whichever way is that side on screen
+            if (dartSide != 0f)
+            {
+                var worldRight = yawRot * Vector3.right;
+                if (headParent != null) worldRight = headParent.TransformDirection(worldRight);
+                mainPos.x += Dart(Time.time - HookPressedAt) * dartSide * (worldRight.x < 0f ? -1f : 1f);
+            }
             // the rod turns with the aim but only partly follows looking up and down, so it stays held up like a real rod
             var aimDir = aimLocal.sqrMagnitude > 0f ? aimLocal.normalized : Vector3.forward;
             var aimFlat = new Vector3(aimDir.x, 0f, aimDir.z);
@@ -566,6 +581,23 @@ namespace RealVRFishingPCMode
             const float Up = 0.08f, Down = 0.3f, Angle = 45f;
             if (t < 0f || t >= Up + Down) return 0f;
             return t < Up ? Mathf.SmoothStep(0f, Angle, t / Up) : Mathf.SmoothStep(Angle, 0f, (t - Up) / Down);
+        }
+
+        // the hand's sideways jerk for a dart: out 20 cm in the flick's snap (fast enough to count), back slowly
+        static float Dart(float t)
+        {
+            const float Out = 0.08f, Back = 0.4f, Reach = 0.2f;
+            if (t < 0f || t >= Out + Back) return 0f;
+            return t < Out ? Mathf.SmoothStep(0f, Reach, t / Out) : Mathf.SmoothStep(Reach, 0f, (t - Out) / Back);
+        }
+
+        float dartSide;
+
+        // bringing a lure or bait in, nothing hooked yet
+        static bool Retrieving()
+        {
+            var fc = Singleton<global::Main>.Instance != null ? Singleton<global::Main>.Instance.fishingController : null;
+            return fc != null && fc.gameState == FISHINGSTATE.RETRIEVE;
         }
 
         static bool LineOut()
