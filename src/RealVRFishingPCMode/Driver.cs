@@ -292,7 +292,8 @@ namespace RealVRFishingPCMode
                 // a twitch with the rod leaned left / right (A / D or the stick) darts the lure that way
                 float lean = (Keys.Right.Down ? 1f : 0f) - (Keys.Left.Down ? 1f : 0f);
                 if (Mathf.Abs(Pad.LeftStick.x) > 0.3f) lean = Mathf.Sign(Pad.LeftStick.x);
-                dartSide = on && Retrieving() ? lean : 0f;
+                jerk = on && Retrieving();
+                dartSide = jerk ? lean : 0f;
             }
             else if (pull > 0f && Time.time - HookPressedAt < 0.08f) hookStrength = Mathf.Max(hookStrength, sharp);
             prevRmb = rmb;
@@ -489,6 +490,13 @@ namespace RealVRFishingPCMode
 
             float side = MainSide == HAND_SIDE.RIGHT ? 1f : -1f;
             var mainPos = headPos + yawRot * new Vector3(Plugin.HandRight.Value * side, Plugin.HandUp.Value, Plugin.HandForward.Value);
+            // a twitch moves the lure only as much as the rod hand itself moves (turning it just starts the twitch), so
+            // during the flick the hand jerks up and back like a VR wrist snap: the lure jumps up and toward you
+            if (jerk)
+            {
+                float j = Dart(Time.time - HookPressedAt);
+                mainPos += yawRot * new Vector3(0f, j * 0.75f, -j * 0.5f);
+            }
             // the game darts a twitched lure along the world's x axis, by how fast the rod hand moves along x in the
             // play space, so a sideways twitch jerks the hand along x toward whichever way is that side on screen
             if (dartSide != 0f)
@@ -592,6 +600,7 @@ namespace RealVRFishingPCMode
         }
 
         float dartSide;
+        bool jerk;
 
         // bringing a lure or bait in, nothing hooked yet
         static bool Retrieving()
@@ -619,7 +628,8 @@ namespace RealVRFishingPCMode
         // extra rod pitch in degrees: the cast winds back over the shoulder then whips forward, the hook flicks up
         float RodAnimLift()
         {
-            float lift = Flick(Time.time - HookPressedAt) * hookStrength + hookHold * 35f;
+            // the hold lifts further than a flick, so holding meets the fish arrow's "up" wherever a flick does
+            float lift = Flick(Time.time - HookPressedAt) * hookStrength + hookHold * 55f;
             // the game stops asking about casting once the rod isn't ready, so drop a charge it forgot
             if (Charging && Time.time - ChargeSeenAt > 0.25f) Charging = false;
             if (Charging) return lift + CastPower * 45f;
