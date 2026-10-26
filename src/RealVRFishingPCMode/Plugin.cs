@@ -13,7 +13,7 @@ namespace RealVRFishingPCMode
     {
         public const string Guid = "com.finalpantasy.realvrfishing.pcmode";
         public const string Name = "Real VR Fishing PC Mode";
-        public const string Version = "0.8.1";
+        public const string Version = "0.8.2";
 
         internal static ManualLogSource Log;
         internal static ConfigFile Cfg;
