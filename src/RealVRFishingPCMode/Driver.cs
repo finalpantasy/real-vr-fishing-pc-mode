@@ -273,6 +273,7 @@ namespace RealVRFishingPCMode
                     h.Stick = Vector2.zero;
                 }
                 prevRmb = true; prevA = prevD = true; prevMenu = true;
+                holdSide = 0f;
                 zoom = 1f; zoomStep = 0;
                 return;
             }
@@ -288,7 +289,9 @@ namespace RealVRFishingPCMode
             if (rmb && !prevRmb) { HookPressedAt = Time.time; hookStrength = pull > 0f ? sharp : 1f; }
             else if (pull > 0f && Time.time - HookPressedAt < 0.08f) hookStrength = Mathf.Max(hookStrength, sharp);
             prevRmb = rmb;
-            hookHold = LineOut() ? pull : 0f;
+            // held, the hook button keeps the rod raised (the fish arrow pointing up); a quick click is only the flick.
+            // A trigger raises it as far as it's squeezed, a mouse button all the way
+            hookHold = LineOut() ? Mathf.MoveTowards(hookHold, pull > 0f ? pull : rmb ? 1f : 0f, Time.unscaledDeltaTime * 5f) : 0f;
             bool pgUp = on && Keys.Taller.Down, pgDn = on && Keys.Shorter.Down;
             if (pgUp && !prevPgUp) heightOffset += 0.05f;
             if (pgDn && !prevPgDn) heightOffset -= 0.05f;
@@ -299,6 +302,10 @@ namespace RealVRFishingPCMode
             if (a && !prevA) SwingLeftAt = Time.time;
             if (dk && !prevD) SwingRightAt = Time.time;
             prevA = a; prevD = dk;
+            // with the line out, holding them keeps the rod pulled to that side: when a fish runs, the game wants the rod
+            // held well off the line (12° to 28° by fish size) for as long as the run lasts
+            float holdTarget = LineOut() ? (dk ? 1f : 0f) - (a ? 1f : 0f) : 0f;
+            holdSide = Mathf.MoveTowards(holdSide, holdTarget, Time.unscaledDeltaTime * 5f);
             bool zk = on && Keys.Zoom.Down;
             // each step blends from wherever the view is now, so zooming back out goes straight to normal
             int step = !on ? 0 : zk && !prevZoom ? (zoomStep + 1) % 3 : zoomStep;
@@ -602,7 +609,14 @@ namespace RealVRFishingPCMode
             return lift;
         }
 
-        float RodAnimSwing() => (Bump(Time.time - SwingRightAt, 0.35f) - Bump(Time.time - SwingLeftAt, 0.35f)) * 40f;
+        // with the line out the rod leans to the side for as long as A / D are held, so a quick tap is a flick and a hold stays;
+        // the lean is slow enough that the game never mistakes it for a lure twitch
+        float RodAnimSwing() => LineOut() ? Mathf.SmoothStep(0f, 1f, Mathf.Abs(holdSide)) * Mathf.Sign(holdSide) * HoldSwing
+            : (Bump(Time.time - SwingRightAt, 0.35f) - Bump(Time.time - SwingLeftAt, 0.35f)) * 40f;
+
+        // well past the 28° the biggest fish need, so the rod still counts when you aren't looking straight down the line
+        const float HoldSwing = 50f;
+        float holdSide;
 
         // a rounded bar beside the crosshair that fills from the bottom: green, then gold, then red at the top
         void DrawPowerBar(Vector2 c)
@@ -707,8 +721,8 @@ namespace RealVRFishingPCMode
                 Plugin.PowerCast ? new Row("Hold, let go to cast", reel) : new Row("Click the water to cast", reel),
                 new Row("Hold to reel", reel),
                 new Row("Hold too for slow reeling", Ui.Key(Keys.SlowReel)),
-                new Row("Set the hook, twitch, land", Ui.Key(Keys.Hook)),
-                new Row("Swing the rod when a fish jumps", Ui.Key(Keys.Left), Ui.Key(Keys.Right)),
+                new Row("Hook, twitch, land; hold: rod up", Ui.Key(Keys.Hook)),
+                new Row("Hold rod left / right, tap to flick", Ui.Key(Keys.Left), Ui.Key(Keys.Right)),
                 new Row("Zoom (press to step)", Ui.Key(Keys.Zoom)),
                 new Row("Lure depth, bait (or wheel)", Ui.Key(Keys.StickUp), Ui.Key(Keys.StickDown)),
                 new Row("Turn a landed fish", "Middle mouse"),
@@ -737,8 +751,8 @@ namespace RealVRFishingPCMode
                 Plugin.PowerCast ? new Row("Hold, let go to cast", reel) : new Row("Aim and press to cast there", reel),
                 new Row(Keys.Reel.PadButton == Pad.Button.RT || Keys.Reel.PadButton == Pad.Button.LT ? "Reel; pull lightly to reel slowly" : "Hold to reel", reel),
                 new Row("Hold too for slow reeling", P(Keys.SlowReel)),
-                new Row("Set the hook, twitch, land", P(Keys.Hook)),
-                stickSwing ? new Row("Flick when a fish jumps", "L-stick ← →") : new Row("Swing the rod when a fish jumps", P(Keys.Left), P(Keys.Right)),
+                new Row("Hook, twitch, land; hold: rod up", P(Keys.Hook)),
+                stickSwing ? new Row("Hold rod left / right, tap to flick", "L-stick ← →") : new Row("Hold rod left / right, tap to flick", P(Keys.Left), P(Keys.Right)),
                 new Row("Zoom (press to step)", P(Keys.Zoom)),
                 new Row("Lure depth, bait", P(Keys.StickUp), P(Keys.StickDown)),
                 new Row("Spin a landed fish", P(Keys.StickLeft), P(Keys.StickRight)));

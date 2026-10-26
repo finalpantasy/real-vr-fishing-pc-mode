@@ -15,7 +15,7 @@ A free mod for the Steam version of Real VR Fishing. It replaces the VR controll
 - **No headset needed.** The game opens in a normal window on your monitor, and SteamVR never starts.
 - **Mouse and keyboard controls.** Look around with the mouse and walk around the lodge with WASD.
 - **Power-bar casting.** Hold left-click to wind up and let go to cast toward your crosshair.
-- **Real fights.** Reel with left-click, set the hook with right-click, and swing the rod with A / D when a fish jumps. Reeling is never faster than in VR, so it stays fair.
+- **Real fights.** Reel with left-click, set the hook with right-click, and hold the rod up or to the side the fish arrow shows (right-click, A / D). A quick tap flicks instead. Reeling is never faster than in VR, so it stays fair.
 - **Photo mode.** Hold your fish up, spin it, hide your hands, show the catch card, fly the camera around and save a picture.
 - **Full-screen catch screen (optional).** Turn it on in F10 to swap the game's floating board for a full-screen catch screen: the scene dimmed behind, your live fish across the middle (turn it with the mouse, zoom with the wheel), a scale from the smallest to the biggest of its kind with pins for this fish and your best, and your count, level and credits. **Space** keeps it for credits, **Backspace** releases it for experience, and **H** switches to the game's own board. The screen slides in, and when you choose, the fish swims off or drops into your keep while your credits or experience float up (turn the animations off in F10 for an instant screen).
 - **Stats corner.** Your level and experience, season scores, credits, species and fish caught at the top right while you fish, with this session's catches, biggest fish and earnings under them. Switch each one on or off in F10, or show the corner only for a few seconds when something changes.
@@ -71,8 +71,8 @@ The Deck's controls show up as an Xbox controller, so keep its Steam Input layou
 | Left-click | Click menus, pick up the rod |
 | Hold left-click, let go | Cast: let go when the power bar is where you want it (right-click cancels) |
 | Hold left-click | Reel in (hold Ctrl too for slow reeling) |
-| Right-click | Twitch the lure, set the hook, swing a landed fish in |
-| A / D | Swing the rod left / right when a fish jumps |
+| Right-click | Twitch the lure, set the hook, swing a landed fish in. Hold it to keep the rod up (fish arrow pointing up) |
+| A / D | Hold the rod left / right while the fish arrow points that way; a quick tap flicks it (a fish jumping) |
 | Z | Zoom: press to step in, in more, back out |
 | Hold Alt | Free the mouse cursor |
 | Tab | Game menu (if the LIV camera tablet is open, the first press puts it away) |
@@ -101,9 +101,9 @@ Plug in an Xbox or PlayStation controller (USB or Bluetooth) and just use it. Th
 | Button (Xbox / PlayStation) | What it does |
 | --- | --- |
 | Right stick | Look around |
-| Left stick | Walk in the lodge (click it to run); flick left / right when a fish jumps |
+| Left stick | Walk in the lodge (click it to run); hold left / right with the fish arrow, a quick push flicks |
 | RT / R2 | Hold and let go to cast; hold to reel (pull lightly to reel slowly) |
-| LT / L2 | Twitch the lure, set the hook, swing a landed fish in |
+| LT / L2 | Twitch the lure, set the hook, swing a landed fish in. Hold it to keep the rod up (fish arrow pointing up) |
 | LB / L1 | Zoom: press to step in, in more, back out |
 | RB / R1 | Grab |
 | D-pad up / down | Lure depth and bait |
