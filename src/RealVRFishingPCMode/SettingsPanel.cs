@@ -285,7 +285,11 @@ namespace RealVRFishingPCMode
             Slider(ref y, x, w, Plugin.Zoom1FieldOfView, "Zoom, first press", 10f, 90f, 1f, v => v.ToString("0") + "°",
                 "Press " + Ui.Key(Keys.Zoom) + " once to zoom in this far. Lower zooms in closer.");
             Slider(ref y, x, w, Plugin.ZoomFieldOfView, "Zoom, second press", 10f, 90f, 1f, v => v.ToString("0") + "°",
-                "Press it again to zoom in this far; a third press goes back to normal.");
+                "Press it again to zoom in this far.");
+            string[] zoomOrders = { "Cycle", "BackAndForth" };
+            int zo = Choice(ref y, x, w, "Zoom order", Plugin.ZoomOrder.Value == "BackAndForth" ? 1 : 0, null,
+                "Cycle: a third press goes straight back to normal. Back and forth: it steps back out one level at a time, in, in more, in, normal.", "Cycle", "Back and forth");
+            if (zoomOrders[zo] != Plugin.ZoomOrder.Value) { Plugin.ZoomOrder.Value = zoomOrders[zo]; dirty = true; }
             Slider(ref y, x, w, Plugin.HeadHeight, "Eye height", 1.2f, 2.2f, 0.01f, FeetInches,
                 "How tall you stand. " + Ui.Key(Keys.Taller) + " and " + Ui.Key(Keys.Shorter) + " change it while you play.");
             if (Driver.I != null)
@@ -608,7 +612,7 @@ namespace RealVRFishingPCMode
         // tab 0 view, 1 fishing, 2 system
         static void ResetSettings(int which)
         {
-            var entries = which == 0 ? new ConfigEntryBase[] { Plugin.MouseSensitivity, Plugin.FieldOfView, Plugin.Zoom1FieldOfView, Plugin.ZoomFieldOfView, Plugin.HeadHeight, Plugin.AimDot, Plugin.StatsCorner, Plugin.HudLevel, Plugin.HudSeason, Plugin.HudBothSeasons, Plugin.HudCredits, Plugin.HudSpecies, Plugin.HudLifetime,
+            var entries = which == 0 ? new ConfigEntryBase[] { Plugin.MouseSensitivity, Plugin.FieldOfView, Plugin.Zoom1FieldOfView, Plugin.ZoomFieldOfView, Plugin.ZoomOrder, Plugin.HeadHeight, Plugin.AimDot, Plugin.StatsCorner, Plugin.HudLevel, Plugin.HudSeason, Plugin.HudBothSeasons, Plugin.HudCredits, Plugin.HudSpecies, Plugin.HudLifetime,
                 Plugin.HudSession, Plugin.HudBiggest, Plugin.HudEarned, Plugin.TutorialPanel, Plugin.WalkSpeed }
                 : which == 1 ? new ConfigEntryBase[] { Plugin.CastMode, Plugin.PowerFillSeconds, Plugin.CustomCatchCard, Plugin.RodLift, Plugin.RodFollowLook, Plugin.AllowOnlineCasting, Plugin.CatchScreenMotion }
                 : new ConfigEntryBase[] { Plugin.SharpenScenery, Plugin.FrameCap, Plugin.CheckForUpdates };

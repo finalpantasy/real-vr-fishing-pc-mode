@@ -69,6 +69,17 @@ namespace RealVRFishingPCMode
         float padHelpHeld;
         public const float HoldForSettings = 0.8f;
         int zoomStep;
+        bool zoomingOut;
+
+        // Cycle: 0, 1, 2, 0. BackAndForth: 0, 1, 2, 1, 0, stepping back out one level at a time
+        int NextZoomStep()
+        {
+            if (Plugin.ZoomOrder.Value != "BackAndForth") return (zoomStep + 1) % 3;
+            if (zoomStep == 0) zoomingOut = false;
+            else if (zoomStep == 2) zoomingOut = true;
+            return zoomingOut ? zoomStep - 1 : zoomStep + 1;
+        }
+
         Transform head, headParent, leftHand, rightHand;
         Camera cam;
         float nextScan;
@@ -319,7 +330,7 @@ namespace RealVRFishingPCMode
             holdSide = Mathf.MoveTowards(holdSide, holdTarget, Time.unscaledDeltaTime * 5f);
             bool zk = on && Keys.Zoom.Down;
             // each step blends from wherever the view is now, so zooming back out goes straight to normal
-            int step = !on ? 0 : zk && !prevZoom ? (zoomStep + 1) % 3 : zoomStep;
+            int step = !on ? 0 : zk && !prevZoom ? NextZoomStep() : zoomStep;
             if (step != zoomStep) { zoomFrom = cam != null ? cam.fieldOfView : ZoomFov(zoomStep); zoomStep = step; zoom = 0f; }
             prevZoom = zk;
             zoom = Mathf.MoveTowards(zoom, 1f, Time.unscaledDeltaTime * 6f);

@@ -21,7 +21,7 @@ namespace RealVRFishingPCMode
             HudLevel, HudSeason, HudBothSeasons, HudCredits, HudSpecies, HudLifetime, HudBiggest, HudEarned;
         internal static ConfigEntry<float> HeadHeight, MouseSensitivity, FieldOfView, Zoom1FieldOfView, ZoomFieldOfView, WalkSpeed, RodLift,
             HandRight, HandUp, HandForward, PowerFillSeconds, RodFollowLook, LodBias;
-        internal static ConfigEntry<string> CastMode, HelpCard, FrameCap, AimDot, StatsCorner, TutorialPanel;
+        internal static ConfigEntry<string> CastMode, HelpCard, FrameCap, AimDot, StatsCorner, TutorialPanel, ZoomOrder;
         internal static bool PowerCast => CastMode.Value != "ClickSpot";
 
         void Awake()
@@ -45,6 +45,9 @@ namespace RealVRFishingPCMode
             // the zoom button steps: normal, first zoom, second zoom, back to normal
             Zoom1FieldOfView = Config.Bind("View", "Zoom1FieldOfView", 50f, "Vertical field of view after one press of the zoom button.");
             ZoomFieldOfView = Config.Bind("View", "ZoomFieldOfView", 30f, "Vertical field of view after a second press of the zoom button.");
+            ZoomOrder = Config.Bind("View", "ZoomOrder", "Cycle", new ConfigDescription(
+                "Cycle: normal, in, in more, back to normal. BackAndForth: normal, in, in more, back to in, back to normal.",
+                new AcceptableValueList<string>("Cycle", "BackAndForth")));
             SharpenScenery = Config.Bind("Graphics", "SharpenScenery", true, "Give large scenery textures mipmaps and 16x filtering so distant shores and skylines stop shimmering. Uses up to 1 GB of video memory.");
             LodBias = Config.Bind("Graphics", "LodBias", 2f, "Level-of-detail distance multiplier (the game ships 0.7). Higher keeps detailed models farther away.");
             HeadHeight = Config.Bind("View", "HeadHeight", 1.70f, "Eye height above the floor in meters (1.70 m is about 5 ft 7 in).");

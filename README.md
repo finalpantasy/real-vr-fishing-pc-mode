@@ -73,7 +73,7 @@ The Deck's controls show up as an Xbox controller, so keep its Steam Input layou
 | Hold left-click | Reel in (hold Ctrl too for slow reeling) |
 | Right-click | Twitch the lure, set the hook, swing a landed fish in. Hold it to keep the rod up (fish arrow pointing up). Hold A or D while you twitch to dart a lure left or right |
 | A / D | Hold the rod left / right while the fish arrow points that way; a quick tap flicks it (a fish jumping) |
-| Z | Zoom: press to step in, in more, back out |
+| Z | Zoom: press to step in, in more, back out (F10 > View > Zoom order can step back out one level at a time) |
 | Hold Alt | Free the mouse cursor |
 | Tab | Game menu (if the LIV camera tablet is open, the first press puts it away) |
 | M | Music player |
@@ -193,7 +193,7 @@ Press **F10** in game. Changes apply right away and are saved when you close the
 
 | View tab | View tab, stats corner |
 | --- | --- |
-| ![The F10 View tab: mouse sensitivity, field of view, two zoom levels, eye height, controls list, aim dot and stats corner](docs/images/settings-view.jpg) | ![The View tab scrolled down: each stat in the stats corner switched on or off, tutorial text position and walk speed](docs/images/settings-stats.jpg) |
+| ![The F10 View tab: mouse sensitivity, field of view, two zoom levels and the zoom order, eye height, controls list, aim dot and stats corner](docs/images/settings-view.jpg) | ![The View tab scrolled down: each stat in the stats corner switched on or off, tutorial text position and walk speed](docs/images/settings-stats.jpg) |
 | **Fishing tab** | **Keys tab** |
 | ![The F10 Fishing tab: cast mode, power bar speed, mouse casting online, rod angle and tilt, full-screen catch screen and its animations](docs/images/settings-fishing.jpg) | ![The F10 Keys tab listing every key, including Space and Backspace for the catch screen](docs/images/settings-keys.jpg) |
 | **Controller tab** | **Buttons tab** |
@@ -201,7 +201,7 @@ Press **F10** in game. Changes apply right away and are saved when you close the
 
 Every setting has a line saying what it does, and **Reset this tab** puts a tab back.
 
-- **View:** mouse sensitivity, field of view, two zoom levels, eye height, the controls list (full, small or off), the aim dot, the stats corner and each stat in it, where tutorial text shows, and walk speed.
+- **View:** mouse sensitivity, field of view, two zoom levels and the zoom order, eye height, the controls list (full, small or off), the aim dot, the stats corner and each stat in it, where tutorial text shows, and walk speed.
 - **Fishing:** cast mode, power bar speed, mouse casting in online rooms, rod angle, whether the rod tilts with your view, the full-screen catch screen and its animations.
 - **System:** sharper distant scenery, a frame rate limit (Monitor by default) and the update check (once per start the mod asks GitHub for the latest version, and F10 shows a link when a newer one is out).
 - **Keys:** click a key, then press the new key or mouse button. Esc cancels. An orange note shows when two actions share a key. **Reset keys** puts them all back. F9, F10 and Esc can't be changed, so you can always get back in.
